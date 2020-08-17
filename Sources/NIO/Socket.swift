@@ -169,6 +169,8 @@ typealias IOVector = iovec
                  controlBytes: UnsafeMutableRawBufferPointer) throws -> IOResult<Int> {
         // Dubious const casts - it should be OK as there is no reason why this should get mutated
         // just bad const declaration below us.
+        
+        #if os(Android)
         var vec = iovec(iov_base:
                             UnsafeMutableRawPointer(mutating: pointer.baseAddress!),
                         iov_len: UInt(pointer.count))
@@ -186,6 +188,23 @@ typealias IOVector = iovec
                 return try Posix.sendmsg(descriptor: handle, msgHdr: &messageHeader, flags: 0)
             }
         }
+        #else
+        var vec = iovec(iov_base: UnsafeMutableRawPointer(mutating: pointer.baseAddress!), iov_len: pointer.count)
+        let notConstCorrectDestinationPtr = UnsafeMutableRawPointer(mutating: destinationPtr)
+
+        return try withUnsafeHandle { handle in
+            return try withUnsafeMutablePointer(to: &vec) { vecPtr in
+                var messageHeader = msghdr(msg_name: notConstCorrectDestinationPtr,
+                                           msg_namelen: destinationSize,
+                                           msg_iov: vecPtr,
+                                           msg_iovlen: 1,
+                                           msg_control: controlBytes.baseAddress,
+                                           msg_controllen: .init(controlBytes.count),
+                                           msg_flags: 0)
+                return try Posix.sendmsg(descriptor: handle, msgHdr: &messageHeader, flags: 0)
+            }
+        }
+        #endif
     }
 
     /// Read data from the socket.
@@ -195,9 +214,15 @@ typealias IOVector = iovec
     /// - returns: The `IOResult` which indicates how much data could be read and if the operation returned before all could be read (because the socket is in non-blocking mode).
     /// - throws: An `IOError` if the operation failed.
     func read(pointer: UnsafeMutableRawBufferPointer) throws -> IOResult<Int> {
+        #if os(Android)
         return try withUnsafeHandle {
             try Posix.read(descriptor: $0, pointer: pointer.baseAddress!, size: Int(pointer.count))
         }
+        #else
+        return try withUnsafeHandle {
+            try Posix.read(descriptor: $0, pointer: pointer.baseAddress!, size: pointer.count)
+        }
+        #endif
     }
 
     /// Receive data from the socket, along with aditional control information.
@@ -214,8 +239,11 @@ typealias IOVector = iovec
                  storage: inout sockaddr_storage,
                  storageLen: inout socklen_t,
                  controlBytes: inout UnsafeReceivedControlBytes) throws -> IOResult<Int> {
+        #if os(Android)
         var vec = iovec(iov_base: pointer.baseAddress, iov_len: UInt(pointer.count))
-
+        #else
+        var vec = iovec(iov_base: pointer.baseAddress, iov_len: pointer.count)
+        #endif
         return try withUnsafeMutablePointer(to: &vec) { vecPtr in
             return try storage.withMutableSockAddr { (sockaddrPtr, _) in
                 var messageHeader = msghdr(msg_name: sockaddrPtr,

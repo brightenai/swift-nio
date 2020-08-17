@@ -85,7 +85,7 @@ public final class NIONetworkInterface {
         } else {
             self.netmask = nil
         }
-
+        #if os(Android)
         if (caddr.ifa_flags & UInt32(CNIOLINUX_IFF_BROADCAST)) != 0, let addr = caddr.broadaddr {
             self.broadcastAddress = addr.convert()
             self.pointToPointDestinationAddress = nil
@@ -102,6 +102,24 @@ public final class NIONetworkInterface {
         } else {
             self.multicastSupported = false
         }
+        #else
+        if (caddr.ifa_flags & UInt32(IFF_BROADCAST)) != 0, let addr = caddr.broadaddr {
+            self.broadcastAddress = addr.convert()
+            self.pointToPointDestinationAddress = nil
+        } else if (caddr.ifa_flags & UInt32(IFF_POINTOPOINT)) != 0, let addr = caddr.dstaddr {
+            self.broadcastAddress = nil
+            self.pointToPointDestinationAddress = addr.convert()
+        } else {
+            self.broadcastAddress = nil
+            self.pointToPointDestinationAddress = nil
+        }
+
+        if (caddr.ifa_flags & UInt32(IFF_MULTICAST)) != 0 {
+            self.multicastSupported = true
+        } else {
+            self.multicastSupported = false
+        }
+        #endif
 
         do {
             self.interfaceIndex = Int(try Posix.if_nametoindex(caddr.ifa_name))
