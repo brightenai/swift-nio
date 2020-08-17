@@ -36,12 +36,13 @@ let badOS = { fatalError("unsupported OS") }()
 
 #if os(Android)
 let INADDR_ANY = UInt32(0) // #define INADDR_ANY ((unsigned long int) 0x00000000)
-internal typealias sockaddr_storage = __kernel_sockaddr_storage
+//internal typealias sockaddr_storage = __kernel_sockaddr_storage
 internal typealias in_port_t = UInt16
 let getifaddrs: @convention(c) (UnsafeMutablePointer<UnsafeMutablePointer<ifaddrs>?>?) -> CInt = android_getifaddrs
 let freeifaddrs: @convention(c) (UnsafeMutablePointer<ifaddrs>?) -> Void = android_freeifaddrs
 extension ipv6_mreq { // http://lkml.iu.edu/hypermail/linux/kernel/0106.1/0080.html
     init (ipv6mr_multiaddr: in6_addr, ipv6mr_interface: UInt32) {
+        self.init()
         self.ipv6mr_multiaddr = ipv6mr_multiaddr
         self.ipv6mr_ifindex = Int32(bitPattern: ipv6mr_interface)
     }
@@ -51,14 +52,24 @@ extension ipv6_mreq { // http://lkml.iu.edu/hypermail/linux/kernel/0106.1/0080.h
 // Declare aliases to share more code and not need to repeat #if #else blocks
 private let sysClose = close
 private let sysShutdown = shutdown
+#if os(Android)
+private let sysBind = CNIOLinux.bind
+private let sysAccept = CNIOLinux.accept
+private let sysConnect = CNIOLinux.connect
+private let sysGetpeername: @convention(c) (CInt, UnsafeMutablePointer<sockaddr>?, UnsafeMutablePointer<socklen_t>?) -> CInt = CNIOLinux.getpeername
+private let sysGetsockname: @convention(c) (CInt, UnsafeMutablePointer<sockaddr>?, UnsafeMutablePointer<socklen_t>?) -> CInt = CNIOLinux.getsockname
+#else
+private let sysAccept = accept
 private let sysBind = bind
+private let sysConnect = connect
+private let sysGetpeername: @convention(c) (CInt, UnsafeMutablePointer<sockaddr>?, UnsafeMutablePointer<socklen_t>?) -> CInt = getpeername
+private let sysGetsockname: @convention(c) (CInt, UnsafeMutablePointer<sockaddr>?, UnsafeMutablePointer<socklen_t>?) -> CInt = getsockname
+#endif
 private let sysFcntl: (CInt, CInt, CInt) -> CInt = fcntl
 private let sysSocket = socket
 private let sysSetsockopt = setsockopt
 private let sysGetsockopt = getsockopt
 private let sysListen = listen
-private let sysAccept = accept
-private let sysConnect = connect
 private let sysOpen: (UnsafePointer<CChar>, CInt) -> CInt = open
 private let sysOpenWithMode: (UnsafePointer<CChar>, CInt, mode_t) -> CInt = open
 private let sysFtruncate = ftruncate
@@ -70,7 +81,7 @@ private let sysLseek = lseek
 private let sysPoll = poll
 #if os(Android)
 func sysRecvFrom_wrapper(sockfd: CInt, buf: UnsafeMutableRawPointer, len: CLong, flags: CInt, src_addr: UnsafeMutablePointer<sockaddr>, addrlen: UnsafeMutablePointer<socklen_t>) -> CLong {
-    return recvfrom(sockfd, buf, len, flags, src_addr, addrlen) // src_addr is 'UnsafeMutablePointer', but it need to be 'UnsafePointer'
+    return CNIOLinux.recvfrom(sockfd, buf, len, flags, src_addr, addrlen) // src_addr is 'UnsafeMutablePointer', but it need to be 'UnsafePointer'
 }
 func sysWritev_wrapper(fd: CInt, iov: UnsafePointer<iovec>?, iovcnt: CInt) -> CLong {
     return CLong(writev(fd, iov, iovcnt)) // cast 'Int32' to 'CLong'
@@ -84,8 +95,6 @@ private let sysWritev: @convention(c) (Int32, UnsafePointer<iovec>?, CInt) -> CL
 private let sysRecvMsg: @convention(c) (CInt, UnsafeMutablePointer<msghdr>?, CInt) -> ssize_t = recvmsg
 private let sysSendMsg: @convention(c) (CInt, UnsafePointer<msghdr>?, CInt) -> ssize_t = sendmsg
 private let sysDup: @convention(c) (CInt) -> CInt = dup
-private let sysGetpeername: @convention(c) (CInt, UnsafeMutablePointer<sockaddr>?, UnsafeMutablePointer<socklen_t>?) -> CInt = getpeername
-private let sysGetsockname: @convention(c) (CInt, UnsafeMutablePointer<sockaddr>?, UnsafeMutablePointer<socklen_t>?) -> CInt = getsockname
 private let sysGetifaddrs: @convention(c) (UnsafeMutablePointer<UnsafeMutablePointer<ifaddrs>?>?) -> CInt = getifaddrs
 private let sysFreeifaddrs: @convention(c) (UnsafeMutablePointer<ifaddrs>?) -> Void = freeifaddrs
 private let sysIfNameToIndex: @convention(c) (UnsafePointer<CChar>?) -> CUnsignedInt = if_nametoindex
@@ -93,8 +102,8 @@ private let sysInet_ntop: @convention(c) (CInt, UnsafeRawPointer?, UnsafeMutable
 private let sysInet_pton: @convention(c) (CInt, UnsafePointer<CChar>?, UnsafeMutableRawPointer?) -> CInt = inet_pton
 private let sysSocketpair: @convention(c) (CInt, CInt, CInt, UnsafeMutablePointer<CInt>?) -> CInt = socketpair
 
-#if os(Linux)
-private let sysFstat: @convention(c) (CInt, UnsafeMutablePointer<stat>) -> CInt = fstat
+#if os(Linux) || os(Android)
+private let sysFstat: @convention(c) (CInt, UnsafeMutablePointer<stat>?) -> CInt = fstat
 private let sysSendMmsg: @convention(c) (CInt, UnsafeMutablePointer<CNIOLinux_mmsghdr>?, CUnsignedInt, CInt) -> CInt = CNIOLinux_sendmmsg
 private let sysRecvMmsg: @convention(c) (CInt, UnsafeMutablePointer<CNIOLinux_mmsghdr>?, CUnsignedInt, CInt, UnsafeMutablePointer<timespec>?) -> CInt  = CNIOLinux_recvmmsg
 private let sysCmsgFirstHdr: @convention(c) (UnsafePointer<msghdr>?) -> UnsafeMutablePointer<cmsghdr>? =
@@ -202,11 +211,11 @@ internal enum Posix {
     static let SHUT_RD: CInt = CInt(Glibc.SHUT_RD)
     static let SHUT_WR: CInt = CInt(Glibc.SHUT_WR)
     static let SHUT_RDWR: CInt = CInt(Glibc.SHUT_RDWR)
-    static let IPTOS_ECN_NOTECT: CInt = CInt(CNIOLinux.IPTOS_ECN_NOT_ECT)
-    static let IPTOS_ECN_MASK: CInt = CInt(CNIOLinux.IPTOS_ECN_MASK)
-    static let IPTOS_ECN_ECT0: CInt = CInt(CNIOLinux.IPTOS_ECN_ECT0)
-    static let IPTOS_ECN_ECT1: CInt = CInt(CNIOLinux.IPTOS_ECN_ECT1)
-    static let IPTOS_ECN_CE: CInt = CInt(CNIOLinux.IPTOS_ECN_CE)
+    static let IPTOS_ECN_NOTECT: CInt = CInt(CNIOLinux_IPTOS_ECN_NOTECT)
+    static let IPTOS_ECN_MASK: CInt = CInt(CNIOLinux_IPTOS_ECN_MASK)
+    static let IPTOS_ECN_ECT0: CInt = CInt(CNIOLinux_IPTOS_ECN_ECT0)
+    static let IPTOS_ECN_ECT1: CInt = CInt(CNIOLinux_IPTOS_ECN_ECT1)
+    static let IPTOS_ECN_CE: CInt = CInt(CNIOLinux_IPTOS_ECN_CE)
 #else
     static var UIO_MAXIOV: Int {
         fatalError("unsupported OS")
@@ -444,7 +453,7 @@ internal enum Posix {
                     var off: off_t = offset
                     let result: ssize_t = Glibc.sendfile(descriptor, fd, &off, count)
                     if result >= 0 {
-                        written = result
+                        written = off_t(result)
                     } else {
                         written = 0
                     }

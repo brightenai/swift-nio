@@ -157,7 +157,7 @@ extension NIOBSDSocket.ProtocolFamily {
 extension NIOBSDSocket.SocketType {
     /// Supports datagrams, which are connectionless, unreliable messages of a
     /// fixed (typically small) maximum length.
-    #if os(Linux)
+    #if os(Linux) //|| os(Android)
         internal static let datagram: NIOBSDSocket.SocketType =
                 NIOBSDSocket.SocketType(rawValue: CInt(SOCK_DGRAM.rawValue))
     #else
@@ -167,7 +167,7 @@ extension NIOBSDSocket.SocketType {
 
     /// Supports reliable, two-way, connection-based byte streams without
     /// duplication of data and without preservation of boundaries.
-    #if os(Linux)
+    #if os(Linux) //|| os(Android)
         internal static let stream: NIOBSDSocket.SocketType =
                 NIOBSDSocket.SocketType(rawValue: CInt(SOCK_STREAM.rawValue))
     #else
@@ -179,7 +179,7 @@ extension NIOBSDSocket.SocketType {
 // Option Level
 extension NIOBSDSocket.OptionLevel {
     /// Socket options that apply only to IP sockets.
-    #if os(Linux)
+    #if os(Linux) || os(Android)
         public static let ip: NIOBSDSocket.OptionLevel =
                 NIOBSDSocket.OptionLevel(rawValue: CInt(IPPROTO_IP))
     #else
@@ -188,7 +188,7 @@ extension NIOBSDSocket.OptionLevel {
     #endif
 
     /// Socket options that apply only to IPv6 sockets.
-    #if os(Linux)
+    #if os(Linux) || os(Android)
         public static let ipv6: NIOBSDSocket.OptionLevel =
                 NIOBSDSocket.OptionLevel(rawValue: CInt(IPPROTO_IPV6))
     #elseif os(Windows)
@@ -200,7 +200,7 @@ extension NIOBSDSocket.OptionLevel {
     #endif
 
     /// Socket options that apply only to TCP sockets.
-    #if os(Linux)
+    #if os(Linux) || os(Android)
         public static let tcp: NIOBSDSocket.OptionLevel =
                 NIOBSDSocket.OptionLevel(rawValue: CInt(IPPROTO_TCP))
     #elseif os(Windows)
@@ -286,7 +286,7 @@ extension NIOBSDSocket.Option {
             NIOBSDSocket.Option(rawValue: TCP_NODELAY)
 }
 
-#if os(Linux) || os(FreeBSD)
+#if os(Linux) || os(Android) || os(FreeBSD)
 extension NIOBSDSocket.Option {
     /// Get information about the TCP connection.
     public static let tcp_info: NIOBSDSocket.Option =

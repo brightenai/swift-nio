@@ -22,6 +22,10 @@ void CNIOLinux_i_do_nothing_just_working_around_a_darwin_toolchain_bug(void) {}
 #include <CNIOLinux.h>
 #include <pthread.h>
 #include <sched.h>
+#ifdef __ANDROID__
+#include <linux/if.h>
+#include <unistd.h>
+#endif
 #include <stdio.h>
 #include <sys/prctl.h>
 #include <assert.h>
@@ -142,4 +146,15 @@ size_t CNIOLinux_CMSG_LEN(size_t payloadSizeBytes) {
 size_t CNIOLinux_CMSG_SPACE(size_t payloadSizeBytes) {
     return CMSG_SPACE(payloadSizeBytes);
 }
+
+
+int CNIOLinux_IPTOS_ECN_NOTECT = IPTOS_ECN_NOTECT;
+int CNIOLinux_IPTOS_ECN_MASK = IPTOS_ECN_MASK;
+int CNIOLinux_IPTOS_ECN_ECT0 = IPTOS_ECN_ECT0;
+int CNIOLinux_IPTOS_ECN_ECT1 = IPTOS_ECN_ECT1;
+int CNIOLinux_IPTOS_ECN_CE = IPTOS_ECN_CE;
+int CNIOLinux_IPTOS_ECN_NOT_ECT = IPTOS_ECN_NOTECT;
+int CNIOLINUX_IFF_BROADCAST = IFF_BROADCAST;
+int CNIOLINUX_IFF_POINTOPOINT = IFF_POINTOPOINT;
+int CNIOLINUX_IFF_MULTICAST = IFF_MULTICAST;
 #endif

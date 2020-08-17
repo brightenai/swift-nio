@@ -49,6 +49,17 @@ typedef struct {
     unsigned int msg_len;
 } CNIOLinux_mmsghdr;
 
+
+extern int CNIOLinux_IPTOS_ECN_NOTECT;
+extern int CNIOLinux_IPTOS_ECN_MASK;
+extern int CNIOLinux_IPTOS_ECN_ECT0;
+extern int CNIOLinux_IPTOS_ECN_ECT1;
+extern int CNIOLinux_IPTOS_ECN_CE;
+extern int CNIOLinux_IPTOS_ECN_NOT_ECT;
+extern int CNIOLINUX_IFF_BROADCAST;
+extern int CNIOLINUX_IFF_POINTOPOINT;
+extern int CNIOLINUX_IFF_MULTICAST;
+
 int CNIOLinux_sendmmsg(int sockfd, CNIOLinux_mmsghdr *msgvec, unsigned int vlen, int flags);
 int CNIOLinux_recvmmsg(int sockfd, CNIOLinux_mmsghdr *msgvec, unsigned int vlen, int flags, struct timespec *timeout);
 

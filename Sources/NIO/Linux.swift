@@ -16,8 +16,8 @@
 // only on Linux, or things that have Linux-specific extensions.
 import CNIOLinux
 
-#if os(Linux)
-internal enum TimerFd {
+#if os(Linux) || os(Android)
+enum TimerFd {
     public static let TFD_CLOEXEC = CNIOLinux.TFD_CLOEXEC
     public static let TFD_NONBLOCK = CNIOLinux.TFD_NONBLOCK
 
@@ -36,7 +36,7 @@ internal enum TimerFd {
     }
 }
 
-internal enum EventFd {
+enum EventFd {
     public static let EFD_CLOEXEC = CNIOLinux.EFD_CLOEXEC
     public static let EFD_NONBLOCK = CNIOLinux.EFD_NONBLOCK
     public typealias eventfd_t = CNIOLinux.eventfd_t
@@ -63,7 +63,7 @@ internal enum EventFd {
     }
 }
 
-internal enum Epoll {
+enum Epoll {
     public typealias epoll_event = CNIOLinux.epoll_event
 
     public static let EPOLL_CTL_ADD: CInt = numericCast(CNIOLinux.EPOLL_CTL_ADD)
@@ -112,7 +112,7 @@ internal enum Epoll {
     }
 }
 
-internal enum Linux {
+enum Linux {
     static let cfsQuotaPath = "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"
     static let cfsPeriodPath = "/sys/fs/cgroup/cpu/cpu.cfs_period_us"
     static let cpuSetPath = "/sys/fs/cgroup/cpuset/cpuset.cpus"

@@ -208,7 +208,7 @@ extension EpollFilterSet {
     }
 }
 
-#if os(Linux)
+#if os(Linux) || os(Android)
     extension SelectorEventSet {
         var epollEventSet: UInt32 {
             assert(self != ._none)
@@ -274,7 +274,7 @@ internal class Selector<R: Registration> {
     // reads: `self.externalSelectorFDLock` OR access from the EventLoop thread
     // writes: `self.externalSelectorFDLock` AND access from the EventLoop thread
     private var selectorFD: CInt // -1 == we're closed
-    #if os(Linux)
+    #if os(Linux) || os(Android)
     private var eventFD: CInt // -1 == we're closed
     private var timerFD: CInt // -1 == we're closed
     #endif
