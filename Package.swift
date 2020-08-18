@@ -84,6 +84,8 @@ var targets: [PackageDescription.Target] = [
 let package = Package(
     name: "swift-nio",
     products: [
+        
+        .library(name: "CNIODarwin",type:.dynamic,  targets: ["CNIODarwin"]),
         .library(name: "NIO",type:.dynamic,  targets: ["NIO"]),
         .library(name: "_NIO1APIShims",type:.dynamic, targets: ["_NIO1APIShims"]),
         .library(name: "NIOTLS",type:.dynamic, targets: ["NIOTLS"]),
