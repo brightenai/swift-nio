@@ -84,14 +84,14 @@ var targets: [PackageDescription.Target] = [
 let package = Package(
     name: "swift-nio",
     products: [
-        .library(name: "NIO", targets: ["NIO"]),
-        .library(name: "_NIO1APIShims", targets: ["_NIO1APIShims"]),
-        .library(name: "NIOTLS", targets: ["NIOTLS"]),
-        .library(name: "NIOHTTP1", targets: ["NIOHTTP1"]),
-        .library(name: "NIOConcurrencyHelpers", targets: ["NIOConcurrencyHelpers"]),
-        .library(name: "NIOFoundationCompat", targets: ["NIOFoundationCompat"]),
-        .library(name: "NIOWebSocket", targets: ["NIOWebSocket"]),
-        .library(name: "NIOTestUtils", targets: ["NIOTestUtils"]),
+        .library(name: "NIO",type:.dynamic,  targets: ["NIO"]),
+        .library(name: "_NIO1APIShims",type:.dynamic, targets: ["_NIO1APIShims"]),
+        .library(name: "NIOTLS",type:.dynamic, targets: ["NIOTLS"]),
+        .library(name: "NIOHTTP1",type:.dynamic, targets: ["NIOHTTP1"]),
+        .library(name: "NIOConcurrencyHelpers",type:.dynamic, targets: ["NIOConcurrencyHelpers"]),
+        .library(name: "NIOFoundationCompat",type:.dynamic, targets: ["NIOFoundationCompat"]),
+        .library(name: "NIOWebSocket",type:.dynamic, targets: ["NIOWebSocket"]),
+        .library(name: "NIOTestUtils",type:.dynamic, targets: ["NIOTestUtils"]),
     ],
     dependencies: [
     ],
