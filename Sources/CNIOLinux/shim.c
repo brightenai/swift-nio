@@ -15,6 +15,7 @@
 // Xcode's Archive builds with Xcode's Package support struggle with empty .c files
 // (https://bugs.swift.org/browse/SR-12939).
 void CNIOLinux_i_do_nothing_just_working_around_a_darwin_toolchain_bug(void) {}
+void CNIOLinux_i_do_nothing_just_working_around_a_darwin_toolchain_bug2(FILE) {}
 
 #ifdef __linux__
 
@@ -147,6 +148,7 @@ size_t CNIOLinux_CMSG_SPACE(size_t payloadSizeBytes) {
     return CMSG_SPACE(payloadSizeBytes);
 }
 
+FILE* CNIOLinux_FAKE = NULL;
 
 int CNIOLinux_IPTOS_ECN_NOTECT = IPTOS_ECN_NOTECT;
 int CNIOLinux_IPTOS_ECN_MASK = IPTOS_ECN_MASK;

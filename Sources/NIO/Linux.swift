@@ -17,6 +17,11 @@
 import CNIOLinux
 
 #if os(Linux) || os(Android)
+
+
+//public let testCNIOLinux_FAKECNIOLinux_FAKE = CNIOLinux_FAKE
+public let testCNIOLinux_FAKECNIOLinux_FAKE2:FILE? = nil
+
 enum TimerFd {
     public static let TFD_CLOEXEC = CNIOLinux.TFD_CLOEXEC
     public static let TFD_NONBLOCK = CNIOLinux.TFD_NONBLOCK

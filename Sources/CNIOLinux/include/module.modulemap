@@ -1,4 +1,0 @@
-module CNIOLinux {
-    header "CNIOLInux.h"
-    export *
-}

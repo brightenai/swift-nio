@@ -27,6 +27,20 @@
 #include <pthread.h>
 #include <netinet/ip.h>
 
+
+/** The opaque structure implementing `FILE`. Do not make any assumptions about its content. */
+struct __sFILE {
+#if defined(__LP64__)
+  char __private[152];
+#else
+  char __private[84];
+#endif
+};
+
+typedef struct __sFILE FILE;
+
+//#include <stdio.h>
+
 // Some explanation is required here.
 //
 // Due to SR-6772, we cannot get Swift code to directly see any of the mmsg structures or
@@ -49,6 +63,8 @@ typedef struct {
     unsigned int msg_len;
 } CNIOLinux_mmsghdr;
 
+
+extern FILE* CNIOLinux_FAKE;
 
 extern int CNIOLinux_IPTOS_ECN_NOTECT;
 extern int CNIOLinux_IPTOS_ECN_MASK;
