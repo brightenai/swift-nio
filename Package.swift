@@ -110,7 +110,7 @@ let package = Package(
 //        .library(name: "_NIO1APIShims",type:.static, targets: ["_NIO1APIShims"]),
         .library(name: "NIOTLS",type:.static, targets: ["NIOTLS"]),
         .library(name: "NIOHTTP1",type:.static, targets: ["NIOHTTP1"]),
-        .library(name: "NIOConcurrencyHelpers",type:.static, targets: ["NIOConcurrencyHelpers"]),
+        .library(name: "NIOConcurrencyHelpers", type:.dynamic,targets: ["NIOConcurrencyHelpers"]),
         .library(name: "NIOFoundationCompat",type:.static, targets: ["NIOFoundationCompat"]),
         .library(name: "NIOWebSocket",type:.static, targets: ["NIOWebSocket"]),
         .library(name: "NIOTestUtils",type:.static, targets: ["NIOTestUtils"]),
