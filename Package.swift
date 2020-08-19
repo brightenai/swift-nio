@@ -23,8 +23,15 @@ var targets: [PackageDescription.Target] = [
                            "CNIODarwin",
                            "NIOConcurrencyHelpers",
                            "CNIOAtomics",
-                           "CNIOSHA1"]),
-    .target(name: "NIOFoundationCompat", dependencies: ["NIO"]),
+                           "CNIOSHA1"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIO.so"],.when(platforms: [.android])),
+                             ]
+),
+    .target(name: "NIOFoundationCompat", dependencies: ["NIO"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIOFoundationCompat.so"],.when(platforms: [.android])),
+                             ]),
     .target(name: "CNIOAtomics", dependencies: []),
     .target(name: "CNIOSHA1", dependencies: []),
     .target(name: "CNIOLinux", dependencies: []),
@@ -32,7 +39,11 @@ var targets: [PackageDescription.Target] = [
     .target(name: "NIOConcurrencyHelpers",
             dependencies: ["CNIOAtomics"]),
     .target(name: "NIOHTTP1",
-            dependencies: ["NIO", "NIOConcurrencyHelpers", "CNIOHTTPParser"]),
+            dependencies: ["NIO", "NIOConcurrencyHelpers", "CNIOHTTPParser"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIOHTTP1.so"],.when(platforms: [.android])),
+                             ]
+    ),
     .target(name: "NIOEchoServer",
             dependencies: ["NIO", "NIOConcurrencyHelpers"]),
     .target(name: "NIOEchoClient",
@@ -42,7 +53,10 @@ var targets: [PackageDescription.Target] = [
     .target(name: "NIOHTTP1Client",
             dependencies: ["NIO", "NIOHTTP1", "NIOConcurrencyHelpers"]),
     .target(name: "CNIOHTTPParser"),
-    .target(name: "NIOTLS", dependencies: ["NIO"]),
+    .target(name: "NIOTLS", dependencies: ["NIO"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIOTLS.so"],.when(platforms: [.android])),
+                             ]),
     .target(name: "NIOChatServer",
             dependencies: ["NIO", "NIOConcurrencyHelpers"]),
     .target(name: "NIOChatClient",
