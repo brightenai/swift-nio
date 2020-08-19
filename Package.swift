@@ -108,7 +108,7 @@ let package = Package(
 //        .library(name: "CNIODarwin",type:.static,  targets: ["CNIODarwin"]),
         .library(name: "NIO",type:.dynamic,  targets: ["NIO"]),
 //        .library(name: "_NIO1APIShims",type:.static, targets: ["_NIO1APIShims"]),
-        .library(name: "NIOTLS",type:.static, targets: ["NIOTLS"]),
+        .library(name: "NIOTLS",type:.dynamic, targets: ["NIOTLS"]),
         .library(name: "NIOHTTP1",type:.static, targets: ["NIOHTTP1"]),
         .library(name: "NIOConcurrencyHelpers", type:.dynamic,targets: ["NIOConcurrencyHelpers"]),
         .library(name: "NIOFoundationCompat",type:.static, targets: ["NIOFoundationCompat"]),
