@@ -62,17 +62,21 @@ var targets: [PackageDescription.Target] = [
 //    .target(name: "NIOHTTP1Client",
 //            dependencies: ["NIO", "NIOHTTP1", "NIOConcurrencyHelpers"]),
     .target(name: "CNIOHTTPParser"),
-    .target(name: "NIOTLS", dependencies: ["NIO"]
-//            linkerSettings: [
-//                            .unsafeFlags([ "-Xlinker","-soname=libNIOTLS.so"],.when(platforms: [.android])),
-//                             ]
+    .target(name: "NIOTLS", dependencies: ["NIO"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIOTLS.so"],.when(platforms: [.android])),
+                             ]
     ),
 //    .target(name: "NIOChatServer",
 //            dependencies: ["NIO", "NIOConcurrencyHelpers"]),
 //    .target(name: "NIOChatClient",
 //            dependencies: ["NIO", "NIOConcurrencyHelpers"]),
     .target(name: "NIOWebSocket",
-            dependencies: ["NIO", "NIOHTTP1", "CNIOSHA1"]),
+            dependencies: ["NIO", "NIOHTTP1", "CNIOSHA1"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIOWebSocket.so"],.when(platforms: [.android])),
+                             ]
+),
 //    .target(name: "NIOWebSocketServer",
 //            dependencies: ["NIO", "NIOHTTP1", "NIOWebSocket"]),
 //    .target(name: "NIOWebSocketClient",
