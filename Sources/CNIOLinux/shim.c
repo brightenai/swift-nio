@@ -31,6 +31,16 @@ void CNIOLinux_i_do_nothing_just_working_around_a_darwin_toolchain_bug2(FILE) {}
 #include <sys/prctl.h>
 #include <assert.h>
 
+#ifndef TEMP_FAILURE_RETRY
+/* Used to retry syscalls that can return EINTR. */
+#define TEMP_FAILURE_RETRY(exp) ({         \
+    __typeof__(exp) _rc;                   \
+    do {                                   \
+        _rc = (exp);                       \
+    } while (_rc == -1 && errno == EINTR); \
+    _rc; })
+#endif
+
 _Static_assert(sizeof(CNIOLinux_mmsghdr) == sizeof(struct mmsghdr),
                "sizes of CNIOLinux_mmsghdr and struct mmsghdr differ");
 
