@@ -20,7 +20,7 @@ var targets: [PackageDescription.Target] = [
 //            dependencies: ["NIO", "NIOHTTP1", "NIOTLS", "NIOFoundationCompat", "NIOWebSocket"]),
     .target(name: "NIO",
             dependencies: ["CNIOLinux",
-                           "CNIODarwin",
+//                           "CNIODarwin",
                            "NIOConcurrencyHelpers",
                            "CNIOAtomics",
                            "CNIOSHA1"],
@@ -36,7 +36,7 @@ var targets: [PackageDescription.Target] = [
     .target(name: "CNIOAtomics", dependencies: []),
     .target(name: "CNIOSHA1", dependencies: []),
     .target(name: "CNIOLinux", dependencies: []),
-    .target(name: "CNIODarwin", dependencies: []),
+//    .target(name: "CNIODarwin", dependencies: []),
     .target(name: "NIOConcurrencyHelpers",
             dependencies: ["CNIOAtomics"],
             linkerSettings: [
@@ -105,7 +105,7 @@ let package = Package(
     name: "swift-nio",
     products: [
         
-        .library(name: "CNIODarwin",type:.static,  targets: ["CNIODarwin"]),
+//        .library(name: "CNIODarwin",type:.static,  targets: ["CNIODarwin"]),
         .library(name: "NIO",type:.dynamic,  targets: ["NIO"]),
 //        .library(name: "_NIO1APIShims",type:.static, targets: ["_NIO1APIShims"]),
         .library(name: "NIOTLS",type:.static, targets: ["NIOTLS"]),
