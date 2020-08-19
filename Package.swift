@@ -38,10 +38,10 @@ var targets: [PackageDescription.Target] = [
     .target(name: "CNIOLinux", dependencies: []),
     .target(name: "CNIODarwin", dependencies: []),
     .target(name: "NIOConcurrencyHelpers",
-            dependencies: ["CNIOAtomics"]
-//            linkerSettings: [
-//                            .unsafeFlags([ "-Xlinker","-soname=libNIOConcurrencyHelpers.so"],.when(platforms: [.android])),
-//                             ]
+            dependencies: ["CNIOAtomics"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIOConcurrencyHelpers.so"],.when(platforms: [.android])),
+                             ]
     ),
     .target(name: "NIOHTTP1",
             dependencies: ["NIO", "NIOConcurrencyHelpers", "CNIOHTTPParser"]
