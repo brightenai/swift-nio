@@ -24,9 +24,9 @@ var targets: [PackageDescription.Target] = [
                            "NIOConcurrencyHelpers",
                            "CNIOAtomics",
                            "CNIOSHA1"]
-//            linkerSettings: [
-//                            .unsafeFlags([ "-Xlinker","-soname=libNIO.so"],.when(platforms: [.android])),
-//                             ]
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIO.so"],.when(platforms: [.android])),
+                             ]
 ),
     .target(name: "NIOFoundationCompat", dependencies: ["NIO"]
 //            linkerSettings: [
@@ -106,7 +106,7 @@ let package = Package(
     products: [
         
         .library(name: "CNIODarwin",type:.static,  targets: ["CNIODarwin"]),
-        .library(name: "NIO",type:.static,  targets: ["NIO"]),
+        .library(name: "NIO",type:.dynamic,  targets: ["NIO"]),
 //        .library(name: "_NIO1APIShims",type:.static, targets: ["_NIO1APIShims"]),
         .library(name: "NIOTLS",type:.static, targets: ["NIOTLS"]),
         .library(name: "NIOHTTP1",type:.static, targets: ["NIOHTTP1"]),
