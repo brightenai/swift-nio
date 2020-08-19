@@ -23,7 +23,7 @@ var targets: [PackageDescription.Target] = [
                            "CNIODarwin",
                            "NIOConcurrencyHelpers",
                            "CNIOAtomics",
-                           "CNIOSHA1"]
+                           "CNIOSHA1"],
             linkerSettings: [
                             .unsafeFlags([ "-Xlinker","-soname=libNIO.so"],.when(platforms: [.android])),
                              ]
