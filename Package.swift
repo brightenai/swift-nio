@@ -32,10 +32,10 @@ var targets: [PackageDescription.Target] = [
                             .unsafeFlags([ "-Xlinker","-soname=libNIO.so"],.when(platforms: [.android])),
                              ]
 ),
-    .target(name: "NIOFoundationCompat", dependencies: ["NIO"]
-//            linkerSettings: [
-//                            .unsafeFlags([ "-Xlinker","-soname=libNIOFoundationCompat.so"],.when(platforms: [.android])),
-//                             ]
+    .target(name: "NIOFoundationCompat", dependencies: ["NIO"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIOFoundationCompat.so"],.when(platforms: [.android])),
+                             ]
     ),
     .target(name: "CNIOAtomics", dependencies: []),
     .target(name: "CNIOSHA1", dependencies: []),
@@ -48,10 +48,10 @@ var targets: [PackageDescription.Target] = [
                              ]
     ),
     .target(name: "NIOHTTP1",
-            dependencies: ["NIO", "NIOConcurrencyHelpers", "CNIOHTTPParser"]
-//            linkerSettings: [
-//                            .unsafeFlags([ "-Xlinker","-soname=libNIOHTTP1.so"],.when(platforms: [.android])),
-//                             ]
+            dependencies: ["NIO", "NIOConcurrencyHelpers", "CNIOHTTPParser"],
+            linkerSettings: [
+                            .unsafeFlags([ "-Xlinker","-soname=libNIOHTTP1.so"],.when(platforms: [.android])),
+                             ]
     ),
 //    .target(name: "NIOEchoServer",
 //            dependencies: ["NIO", "NIOConcurrencyHelpers"]),
@@ -117,10 +117,10 @@ let package = Package(
         .library(name: "NIO",type:.dynamic,  targets: ["NIO"]),
 //        .library(name: "_NIO1APIShims",type:.static, targets: ["_NIO1APIShims"]),
         .library(name: "NIOTLS",type:.dynamic, targets: ["NIOTLS"]),
-        .library(name: "NIOHTTP1",type:.static, targets: ["NIOHTTP1"]),
+        .library(name: "NIOHTTP1",type:.dynamic, targets: ["NIOHTTP1"]),
         .library(name: "NIOConcurrencyHelpers", type:.dynamic,targets: ["NIOConcurrencyHelpers"]),
-        .library(name: "NIOFoundationCompat",type:.static, targets: ["NIOFoundationCompat"]),
-        .library(name: "NIOWebSocket",type:.static, targets: ["NIOWebSocket"]),
+        .library(name: "NIOFoundationCompat",type:.dynamic, targets: ["NIOFoundationCompat"]),
+        .library(name: "NIOWebSocket",type:.dynamic, targets: ["NIOWebSocket"]),
 //        .library(name: "NIOTestUtils",type:.static, targets: ["NIOTestUtils"]),
     ],
     dependencies: [
