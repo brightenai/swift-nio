@@ -17,6 +17,8 @@ import Logging
 let loggerB = Logger(label: "com.brightenai.ssl.party")
 
 private struct SocketChannelLifecycleManager {
+        
+    static var logSetup = false
     // MARK: Types
     private enum State {
         case fresh
@@ -93,6 +95,12 @@ private struct SocketChannelLifecycleManager {
     @inline(__always) // we need to return a closure here and to not suffer from a potential allocation for that this must be inlined
     private mutating func moveState(event: Event) -> ((EventLoopPromise<Void>?, ChannelPipeline) -> Void) {
         self.eventLoop.assertInEventLoop()
+
+        if !SocketChannelLifecycleManager.logSetup
+        {
+            SocketChannelLifecycleManager.logSetup = true
+            LoggingSystem.bootstrap(StreamLogHandler.standardError)
+        }
 
         loggerB.info("moveState event: \(event)")
 
