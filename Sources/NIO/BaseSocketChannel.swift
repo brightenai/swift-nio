@@ -13,6 +13,8 @@
 //===----------------------------------------------------------------------===//
 
 import NIOConcurrencyHelpers
+import Logging
+let loggerB = Logger(label: "com.brightenai.ssl.party")
 
 private struct SocketChannelLifecycleManager {
     // MARK: Types
@@ -91,6 +93,8 @@ private struct SocketChannelLifecycleManager {
     @inline(__always) // we need to return a closure here and to not suffer from a potential allocation for that this must be inlined
     private mutating func moveState(event: Event) -> ((EventLoopPromise<Void>?, ChannelPipeline) -> Void) {
         self.eventLoop.assertInEventLoop()
+
+        loggerB.info("moveState event: \(event)")
 
         switch (self.currentState, event) {
         // origin: .fresh
@@ -211,8 +215,10 @@ class BaseSocketChannel<SocketType: BaseSocketProtocol>: SelectableChannel, Chan
         let remote: Optional<SocketAddress>
 
         init(local: SocketAddress?, remote: SocketAddress?) {
+            
             self.local = local
             self.remote = remote
+            loggerB.info("BaseSocketChannel init \(self)")
         }
     }
 
@@ -923,6 +929,8 @@ class BaseSocketChannel<SocketType: BaseSocketProtocol>: SelectableChannel, Chan
     }
 
     private func finishConnect() {
+        
+        loggerB.info("finishConnect \(self)")
         self.eventLoop.assertInEventLoop()
         assert(self.lifecycleManager.isPreRegistered)
 

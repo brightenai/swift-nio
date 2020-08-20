@@ -21,6 +21,7 @@ var targets: [PackageDescription.Target] = [
     .target(name: "NIO",
             dependencies: ["CNIOLinux",
 //                           "CNIODarwin",
+                           .product(name: "Logging", package: "swift-log"),
                            "NIOConcurrencyHelpers",
                            "CNIOAtomics",
                            "CNIOSHA1"],
@@ -131,6 +132,7 @@ let package = Package(
 //        .library(name: "NIOTestUtils",type:.static, targets: ["NIOTestUtils"]),
     ],
     dependencies: [
+        .package(name:"swift-log",url: "https://github.com/brightenai/swift-log.git",  .branch("master")),
     ],
     targets: targets
 )
