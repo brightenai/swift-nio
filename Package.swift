@@ -40,7 +40,7 @@ var targets: [PackageDescription.Target] = [
     .target(name: "CNIOAtomics", dependencies: []),
     .target(name: "CNIOSHA1", dependencies: []),
     .target(name: "CNIOLinux", dependencies: []),
-//    .target(name: "CNIODarwin", dependencies: []),
+    .target(name: "CNIODarwin", dependencies: []),
     .target(name: "NIOConcurrencyHelpers",
             dependencies: ["CNIOAtomics"],
             linkerSettings: [
@@ -109,11 +109,18 @@ var targets: [PackageDescription.Target] = [
 //                dependencies: ["NIO", "NIOFoundationCompat"]),
 ]
 
+#if os(Linux) || os(Android)
+let useDarwin = false
+#else
+let useDarwin = true
+#endif
+
 let package = Package(
     name: "swift-nio",
     products: [
         
-//        .library(name: "CNIODarwin",type:.static,  targets: ["CNIODarwin"]),
+//        .library(name: "CNIODarwin",targets: ["CNIODarwin"]),
+
         .library(name: "NIO",  targets: ["NIO"]),
 //        .library(name: "_NIO1APIShims",type:.static, targets: ["_NIO1APIShims"]),
         .library(name: "NIOTLS", targets: ["NIOTLS"]),
@@ -127,3 +134,11 @@ let package = Package(
     ],
     targets: targets
 )
+
+// useDarwin but not on Linux.
+if useDarwin {
+    package.products.append( .library(name: "CNIODarwin",targets: ["CNIODarwin"]))
+    
+    package.targets.first { $0.name == "NIO" }?.dependencies.append("CNIODarwin")
+
+}
