@@ -65,6 +65,7 @@ typedef struct {
 } CNIOLinux_mmsghdr;
 
 
+#ifdef __ANDROID__
 extern FILE* CNIOLinux_FAKE;
 
 extern int CNIOLinux_IPTOS_ECN_NOTECT;
@@ -76,6 +77,7 @@ extern int CNIOLinux_IPTOS_ECN_NOT_ECT;
 extern int CNIOLINUX_IFF_BROADCAST;
 extern int CNIOLINUX_IFF_POINTOPOINT;
 extern int CNIOLINUX_IFF_MULTICAST;
+#endif
 
 int CNIOLinux_sendmmsg(int sockfd, CNIOLinux_mmsghdr *msgvec, unsigned int vlen, int flags);
 int CNIOLinux_recvmmsg(int sockfd, CNIOLinux_mmsghdr *msgvec, unsigned int vlen, int flags, struct timespec *timeout);
