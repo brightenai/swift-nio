@@ -27,6 +27,7 @@
 #include <pthread.h>
 #include <netinet/ip.h>
 
+#ifdef __ANDROID__
 
 /** The opaque structure implementing `FILE`. Do not make any assumptions about its content. */
 struct __sFILE {
@@ -38,7 +39,7 @@ struct __sFILE {
 };
 
 typedef struct __sFILE FILE;
-
+#endif
 //#include <stdio.h>
 
 // Some explanation is required here.
