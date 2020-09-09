@@ -14,7 +14,7 @@
 
 import NIOConcurrencyHelpers
 import Logging
-let loggerB = Logger(label: "com.brightenai.ssl.party")
+//let loggerB = Logger(label: "com.brightenai.ssl.party")
 
 private struct SocketChannelLifecycleManager {
         
@@ -102,7 +102,7 @@ private struct SocketChannelLifecycleManager {
             LoggingSystem.bootstrap(StreamLogHandler.standardError)
         }
 
-        loggerB.info("moveState event: \(event)")
+//        loggerB.info("moveState event: \(event)")
 
         switch (self.currentState, event) {
         // origin: .fresh
@@ -226,7 +226,7 @@ class BaseSocketChannel<SocketType: BaseSocketProtocol>: SelectableChannel, Chan
             
             self.local = local
             self.remote = remote
-            loggerB.info("BaseSocketChannel init \(self)")
+//            loggerB.info("BaseSocketChannel init \(self)")
         }
     }
 
@@ -938,7 +938,7 @@ class BaseSocketChannel<SocketType: BaseSocketProtocol>: SelectableChannel, Chan
 
     private func finishConnect() {
         
-        loggerB.info("finishConnect \(self)")
+//        loggerB.info("finishConnect \(self)")
         self.eventLoop.assertInEventLoop()
         assert(self.lifecycleManager.isPreRegistered)
 
