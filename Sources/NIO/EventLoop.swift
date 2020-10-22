@@ -822,7 +822,7 @@ public final class MultiThreadedEventLoopGroup: EventLoopGroup {
                                    selectorFactory: @escaping () throws -> NIO.Selector<NIORegistration>,
                                    initializer: @escaping ThreadInitializer,
                                    _ callback: @escaping (SelectableEventLoop) -> Void) {
-        assert(NIOThread.current == thread)
+       // assert(NIOThread.current == thread)
         initializer(thread)
 
         do {
