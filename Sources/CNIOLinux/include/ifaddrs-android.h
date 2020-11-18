@@ -31,40 +31,6 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-//#ifndef WEBRTC_BASE_IFADDRS_ANDROID_H_
-//#define WEBRTC_BASE_IFADDRS_ANDROID_H_
-//
-//#include <stdio.h>
-//#include <sys/socket.h>
-//#include <netdb.h>
-//
-///* Implementation of getifaddrs for Android.
-// * Fills out a list of ifaddr structs (see below) which contain information
-// * about every network interface available on the host.
-// * See 'man getifaddrs' on Linux or OS X (nb: it is not a POSIX function). */
-//struct ifaddrs {
-//  struct ifaddrs* ifa_next;
-//  char* ifa_name;
-//  unsigned int ifa_flags;
-//  struct sockaddr* ifa_addr;
-//  struct sockaddr* ifa_netmask;
-//union {
-//struct sockaddr *ifu_broadaddr;
-//struct sockaddr *ifu_dstaddr;
-//} ifa_ifu;
-//  /* Real ifaddrs has broadcast, point to point and data members.
-//   * We don't need them (yet?). */
-//};
-//
-//int android_getifaddrs(struct ifaddrs** result);
-//void android_freeifaddrs(struct ifaddrs* addrs);
-//
-//#endif  /* WEBRTC_BASE_IFADDRS_ANDROID_H_ */
-
-
-#ifndef    _IFADDRS_H_
-#define    _IFADDRS_H_
-
 /*
  * Copyright (C) 2015 The Android Open Source Project
  * All rights reserved.
@@ -93,6 +59,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * SUCH DAMAGE.
  */
 
+#ifndef    _IFADDRS_H_
+#define    _IFADDRS_H_
+
 #pragma once
 
 /**
@@ -100,9 +69,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * @brief Access to network interface addresses.
  */
 
+#include <stdio.h>
 #include <sys/cdefs.h>
 #include <netinet/in.h>
-#include <sys/socket.h>
+#include <netdb.h>
 
 __BEGIN_DECLS
 
@@ -193,3 +163,35 @@ __END_DECLS
 
 #endif
 
+
+#ifndef WEBRTC_BASE_IFADDRS_ANDROID_H_
+#define WEBRTC_BASE_IFADDRS_ANDROID_H_
+//
+//#include <stdio.h>
+//#include <sys/socket.h>
+//#include <netdb.h>
+//
+///* Implementation of getifaddrs for Android.
+// * Fills out a list of ifaddr structs (see below) which contain information
+// * about every network interface available on the host.
+// * See 'man getifaddrs' on Linux or OS X (nb: it is not a POSIX function). */
+//struct ifaddrs {
+//  struct ifaddrs* ifa_next;
+//  char* ifa_name;
+//  unsigned int ifa_flags;
+//  struct sockaddr* ifa_addr;
+//  struct sockaddr* ifa_netmask;
+//union {
+//struct sockaddr *ifu_broadaddr;
+//struct sockaddr *ifu_dstaddr;
+//} ifa_ifu;
+//  /* Real ifaddrs has broadcast, point to point and data members.
+//   * We don't need them (yet?). */
+//};
+//
+int android_getifaddrs(struct ifaddrs** result);
+void android_freeifaddrs(struct ifaddrs* addrs);
+//
+//#endif  /* WEBRTC_BASE_IFADDRS_ANDROID_H_ */
+
+#endif
