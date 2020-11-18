@@ -17,7 +17,7 @@
 #include "ifaddrs-android.h"
 
 #ifdef __ANDROID__
-#define (__force __poll_t)
+#define __force __poll_t
 #endif
 
 #ifdef __linux__
