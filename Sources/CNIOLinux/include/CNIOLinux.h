@@ -16,11 +16,6 @@
 
 #include "ifaddrs-android.h"
 
-#ifdef __ANDROID__
-#define __force
-#define __poll_t
-#endif
-
 #ifdef __linux__
 
 #include <sys/epoll.h>
@@ -35,7 +30,7 @@
 
 #ifdef __ANDROID__
 
-//#define EPOLLIN  0x00000001
+#define EPOLLIN  0x00000001
 //#define EPOLLPRI  0x00000002
 //#define EPOLLOUT  0x00000004
 //#define EPOLLERR  0x00000008
