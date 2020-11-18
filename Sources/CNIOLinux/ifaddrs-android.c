@@ -52,6 +52,8 @@ struct netlinkrequest {
 
 static const int kMaxReadSize = 4096;
 
+void android_freeifaddrs(struct ifaddrs* addrs);
+
 static int set_ifname(struct ifaddrs* ifaddr, int interface) {
   char buf[IFNAMSIZ] = {0};
   char* name = if_indextoname(interface, buf);
