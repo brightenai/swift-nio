@@ -255,16 +255,31 @@ public protocol EventLoop: EventLoopGroup {
     ///            on the completion of the task.
     ///
     /// - note: You can only cancel a task before it has started executing.
+    /// - note: The `in` value is clamped to a maximum when running on a Darwin-kernel.
     @discardableResult
     func scheduleTask<T>(in: TimeAmount, _ task: @escaping () throws -> T) -> Scheduled<T>
 
     /// Asserts that the current thread is the one tied to this `EventLoop`.
     /// Otherwise, the process will be abnormally terminated as per the semantics of `preconditionFailure(_:file:line:)`.
     func preconditionInEventLoop(file: StaticString, line: UInt)
-    
+
     /// Asserts that the current thread is _not_ the one tied to this `EventLoop`.
     /// Otherwise, the process will be abnormally terminated as per the semantics of `preconditionFailure(_:file:line:)`.
     func preconditionNotInEventLoop(file: StaticString, line: UInt)
+
+    /// Return a succeeded `Void` future.
+    ///
+    /// Semantically, this function is equivalent to calling `makeSucceededFuture(())`.
+    /// Contrary to `makeSucceededFuture`, `makeSucceededVoidFuture` is a customization point for `EventLoop`s which
+    /// allows `EventLoop`s to cache a pre-succeded `Void` future to prevent superfluous allocations.
+    func makeSucceededVoidFuture() -> EventLoopFuture<Void>
+}
+
+extension EventLoop {
+    /// Default implementation of `makeSucceededVoidFuture`: Return a fresh future (which will allocate).
+    public func makeSucceededVoidFuture() -> EventLoopFuture<Void> {
+        return EventLoopFuture(eventLoop: self, value: (), file: "n/a", line: 0)
+    }
 }
 
 extension EventLoopGroup {
@@ -348,13 +363,26 @@ extension TimeAmount: Comparable {
     }
 }
 
-extension TimeAmount {
+extension TimeAmount: AdditiveArithmetic {
+    /// The zero value for `TimeAmount`.
+    public static var zero: TimeAmount {
+        return TimeAmount.nanoseconds(0)
+    }
+
     public static func + (lhs: TimeAmount, rhs: TimeAmount) -> TimeAmount {
         return TimeAmount(lhs.nanoseconds + rhs.nanoseconds)
     }
 
+    public static func +=(lhs: inout TimeAmount, rhs: TimeAmount) {
+        lhs = lhs + rhs
+    }
+
     public static func - (lhs: TimeAmount, rhs: TimeAmount) -> TimeAmount {
         return TimeAmount(lhs.nanoseconds - rhs.nanoseconds)
+    }
+
+    public static func -=(lhs: inout TimeAmount, rhs: TimeAmount) {
+        lhs = lhs - rhs
     }
 
     public static func * <T: BinaryInteger>(lhs: T, rhs: TimeAmount) -> TimeAmount {
@@ -501,7 +529,7 @@ extension EventLoop {
     ///
     /// - parameters:
     ///     - task: The asynchronous task to run. As with everything that runs on the `EventLoop`, it must not block.
-    /// - returns: An `EventLoopFuture` identical to the `EventLooopFuture` returned from `task`.
+    /// - returns: An `EventLoopFuture` identical to the `EventLoopFuture` returned from `task`.
     @inlinable
     public func flatSubmit<T>(_ task: @escaping () -> EventLoopFuture<T>) -> EventLoopFuture<T> {
         return self.submit(task).flatMap { $0 }
@@ -516,13 +544,14 @@ extension EventLoop {
     ///
     /// - note: You can only cancel a task before it has started executing.
     @discardableResult
+    @inlinable
     public func flatScheduleTask<T>(deadline: NIODeadline,
                                     file: StaticString = #file,
                                     line: UInt = #line,
                                     _ task: @escaping () throws -> EventLoopFuture<T>) -> Scheduled<T> {
         let promise: EventLoopPromise<T> = self.makePromise(file:#file, line: line)
         let scheduled = self.scheduleTask(deadline: deadline, task)
-        
+
         scheduled.futureResult.flatMap { $0 }.cascade(to: promise)
         return .init(promise: promise, cancellationTask: { scheduled.cancel() })
     }
@@ -536,13 +565,14 @@ extension EventLoop {
     ///
     /// - note: You can only cancel a task before it has started executing.
     @discardableResult
+    @inlinable
     public func flatScheduleTask<T>(in delay: TimeAmount,
                                     file: StaticString = #file,
                                     line: UInt = #line,
                                     _ task: @escaping () throws -> EventLoopFuture<T>) -> Scheduled<T> {
         let promise: EventLoopPromise<T> = self.makePromise(file: file, line: line)
         let scheduled = self.scheduleTask(in: delay, task)
-        
+
         scheduled.futureResult.flatMap { $0 }.cascade(to: promise)
         return .init(promise: promise, cancellationTask: { scheduled.cancel() })
     }
@@ -570,7 +600,27 @@ extension EventLoop {
     /// - returns: a succeeded `EventLoopFuture`.
     @inlinable
     public func makeSucceededFuture<Success>(_ value: Success, file: StaticString = #file, line: UInt = #line) -> EventLoopFuture<Success> {
-        return EventLoopFuture<Success>(eventLoop: self, value: value, file: file, line: line)
+        if Success.self == Void.self {
+            // The as! will always succeed because we previously checked that Success.self == Void.self.
+            return self.makeSucceededVoidFuture() as! EventLoopFuture<Success>
+        } else {
+            return EventLoopFuture<Success>(eventLoop: self, value: value, file: file, line: line)
+        }
+    }
+
+    /// Creates and returns a new `EventLoopFuture` that is marked as succeeded or failed with the value held by `result`.
+    ///
+    /// - Parameters:
+    ///   - result: The value that is used by the `EventLoopFuture`
+    /// - Returns: A completed `EventLoopFuture`.
+    @inlinable
+    public func makeCompletedFuture<Success>(_ result: Result<Success, Error>) -> EventLoopFuture<Success> {
+        switch result {
+        case .success(let value):
+            return self.makeSucceededFuture(value)
+        case .failure(let error):
+            return self.makeFailedFuture(error)
+        }
     }
 
     /// An `EventLoop` forms a singular `EventLoopGroup`, returning itself as the 'next' `EventLoop`.
@@ -718,7 +768,7 @@ enum NIORegistration: Registration {
 }
 
 /// Provides an endless stream of `EventLoop`s to use.
-public protocol EventLoopGroup: class {
+public protocol EventLoopGroup: AnyObject {
     /// Returns the next `EventLoop` to use.
     ///
     /// The algorithm that is used to select the next `EventLoop` is specific to each `EventLoopGroup`. A common choice
@@ -887,7 +937,7 @@ public final class MultiThreadedEventLoopGroup: EventLoopGroup {
         let initializers: [ThreadInitializer] = Array(repeating: { _ in }, count: numberOfThreads)
         self.init(threadInitializers: initializers, selectorFactory: selectorFactory)
     }
-    
+
     /// Creates a `MultiThreadedEventLoopGroup` instance which uses the given `ThreadInitializer`s. One `NIOThread` per `ThreadInitializer` is created and used.
     ///
     /// - arguments:

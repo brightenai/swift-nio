@@ -65,7 +65,7 @@ final class SocketOptionProviderTest: XCTestCase {
         // risk.
         let v4LoopbackAddress = try! assertNoThrowWithValue(SocketAddress(ipAddress: "127.0.0.1", port: 0))
         let v6LoopbackAddress = try! assertNoThrowWithValue(SocketAddress(ipAddress: "::1", port: 0))
-        let v4LoopbackInterface = try! assertNoThrowWithValue(System.enumerateInterfaces().filter {
+        let v4LoopbackInterface = try! assertNoThrowWithValue(System.enumerateDevices().filter {
             $0.address == v4LoopbackAddress
         }.first)!
 
@@ -73,7 +73,7 @@ final class SocketOptionProviderTest: XCTestCase {
         if v4LoopbackAddress.isMulticast {
             self.ipv4DatagramChannel = try? assertNoThrowWithValue(
                 DatagramBootstrap(group: group).bind(host: "127.0.0.1", port: 0).flatMap { channel in
-                    return (channel as! MulticastChannel).joinGroup(try! SocketAddress(ipAddress: "224.0.2.66", port: 0), interface: v4LoopbackInterface).map { channel }
+                    return (channel as! MulticastChannel).joinGroup(try! SocketAddress(ipAddress: "224.0.2.66", port: 0), device: v4LoopbackInterface).map { channel }
                 }.wait()
             )
         }
@@ -81,9 +81,9 @@ final class SocketOptionProviderTest: XCTestCase {
         // Only run the setup if the loopback interface supports multicast
         if v6LoopbackAddress.isMulticast {
             // The IPv6 setup is allowed to fail, some hosts don't have IPv6.
-            let v6LoopbackInterface = try? assertNoThrowWithValue(System.enumerateInterfaces().filter { $0.address == v6LoopbackAddress }.first)
+            let v6LoopbackInterface = try? assertNoThrowWithValue(System.enumerateDevices().filter { $0.address == v6LoopbackAddress }.first)
             self.ipv6DatagramChannel = try? DatagramBootstrap(group: group).bind(host: "::1", port: 0).flatMap { channel in
-                return (channel as! MulticastChannel).joinGroup(try! SocketAddress(ipAddress: "ff12::beeb", port: 0), interface: v6LoopbackInterface).map { channel }
+                return (channel as! MulticastChannel).joinGroup(try! SocketAddress(ipAddress: "ff12::beeb", port: 0), device: v6LoopbackInterface).map { channel }
             }.wait()
         }
     }
@@ -222,7 +222,7 @@ final class SocketOptionProviderTest: XCTestCase {
 
         // TODO: test this when we know what the interface indices are.
         let loopbackAddress = try assertNoThrowWithValue(SocketAddress(ipAddress: "::1", port: 0))
-        guard let loopbackInterface = try assertNoThrowWithValue(System.enumerateInterfaces().filter({ $0.address == loopbackAddress }).first) else {
+        guard let loopbackInterface = try assertNoThrowWithValue(System.enumerateDevices().filter({ $0.address == loopbackAddress }).first) else {
             XCTFail("Could not find index of loopback address")
             return
         }
@@ -269,12 +269,12 @@ final class SocketOptionProviderTest: XCTestCase {
     }
 
     func testTCPInfo() throws {
-        // This test only runs on Linux and FreeBSD.
-        #if os(Linux) || os(FreeBSD)
+        // This test only runs on Linux, FreeBSD, and Android.
+        #if os(Linux) || os(FreeBSD) || os(Android)
         let channel = self.clientChannel! as! SocketOptionProvider
         let tcpInfo = try assertNoThrowWithValue(channel.getTCPInfo().wait())
 
-        // We just need to sanity check something here to ensure that the data is vaguely reasonable.
+        // We just need to soundness check something here to ensure that the data is vaguely reasonable.
         XCTAssertEqual(tcpInfo.tcpi_state, UInt8(TCP_ESTABLISHED))
         #endif
     }
@@ -286,7 +286,7 @@ final class SocketOptionProviderTest: XCTestCase {
         let tcpConnectionInfo = try assertNoThrowWithValue(channel.getTCPConnectionInfo().wait())
 
         #if os(macOS) // deliberately only on macOS
-        // We just need to sanity check something here to ensure that the data is vaguely reasonable.
+        // We just need to soundness check something here to ensure that the data is vaguely reasonable.
         XCTAssertEqual(tcpConnectionInfo.tcpi_state, UInt8(TSI_S_ESTABLISHED))
         #endif
         #endif

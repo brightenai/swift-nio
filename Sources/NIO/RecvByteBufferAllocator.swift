@@ -62,7 +62,7 @@ public struct AdaptiveRecvByteBufferAllocator: RecvByteBufferAllocator {
         }
 
         i = 512
-        while i > 0 {
+        while i < UInt32.max { // 1 << 32 max buffer size
             sizeTable.append(i)
             i <<= 1
         }
@@ -81,7 +81,7 @@ public struct AdaptiveRecvByteBufferAllocator: RecvByteBufferAllocator {
     private var decreaseNow: Bool
 
     public init() {
-        self.init(minimum: 64, initial: 1024, maximum: 65536)
+        self.init(minimum: 64, initial: 2048, maximum: 65536)
     }
 
     public init(minimum: Int, initial: Int, maximum: Int) {

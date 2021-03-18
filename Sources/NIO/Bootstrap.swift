@@ -224,13 +224,30 @@ public final class ServerBootstrap {
             try SocketAddress(unixDomainSocketPath: unixDomainSocketPath)
         }
     }
+    
+    /// Bind the `ServerSocketChannel` to a UNIX Domain Socket.
+    ///
+    /// - parameters:
+    ///     - unixDomainSocketPath: The _Unix domain socket_ path to bind to. `unixDomainSocketPath` must not exist, it will be created by the system.
+    ///     - cleanupExistingSocketFile: Whether to cleanup an existing socket file at `path`.
+    public func bind(unixDomainSocketPath: String, cleanupExistingSocketFile: Bool) -> EventLoopFuture<Channel> {
+        if cleanupExistingSocketFile {
+            do {
+                try BaseSocket.cleanupSocket(unixDomainSocketPath: unixDomainSocketPath)
+            } catch {
+                return group.next().makeFailedFuture(error)
+            }
+        }
+
+        return self.bind(unixDomainSocketPath: unixDomainSocketPath)
+    }
 
     #if !os(Windows)
         /// Use the existing bound socket file descriptor.
         ///
         /// - parameters:
         ///     - descriptor: The _Unix file descriptor_ representing the bound stream socket.
-        @available(*, deprecated, renamed: "ServerBootstrap.withBoundSocket(_:)")
+        @available(*, deprecated, renamed: "withBoundSocket(_:)")
         public func withBoundSocket(descriptor: CInt) -> EventLoopFuture<Channel> {
             return withBoundSocket(descriptor)
         }
@@ -519,7 +536,7 @@ public final class ClientBootstrap: NIOClientTCPBootstrapProtocol {
     }
 
     /// Specifies a timeout to apply to a connection attempt.
-    //
+    ///
     /// - parameters:
     ///     - timeout: The timeout that will apply to the connection attempt.
     public func connectTimeout(_ timeout: TimeAmount) -> Self {
@@ -630,7 +647,7 @@ public final class ClientBootstrap: NIOClientTCPBootstrapProtocol {
         /// - parameters:
         ///     - descriptor: The _Unix file descriptor_ representing the connected stream socket.
         /// - returns: an `EventLoopFuture<Channel>` to deliver the `Channel`.
-        @available(*, deprecated, renamed: "ClientBoostrap.withConnectedSocket(_:)")
+        @available(*, deprecated, renamed: "withConnectedSocket(_:)")
         public func withConnectedSocket(descriptor: CInt) -> EventLoopFuture<Channel> {
           return self.withConnectedSocket(descriptor)
         }
@@ -811,7 +828,7 @@ public final class DatagramBootstrap {
         ///
         /// - parameters:
         ///     - descriptor: The _Unix file descriptor_ representing the bound datagram socket.
-        @available(*, deprecated, renamed: "DatagramBootstrap.withBoundSocket(_:)")
+        @available(*, deprecated, renamed: "withBoundSocket(_:)")
         public func withBoundSocket(descriptor: CInt) -> EventLoopFuture<Channel> {
             return self.withBoundSocket(descriptor)
         }
@@ -859,6 +876,23 @@ public final class DatagramBootstrap {
         return bind0 {
             return try SocketAddress(unixDomainSocketPath: unixDomainSocketPath)
         }
+    }
+    
+    /// Bind the `DatagramChannel` to a UNIX Domain Socket.
+    ///
+    /// - parameters:
+    ///     - unixDomainSocketPath: The path of the UNIX Domain Socket to bind on. `path` must not exist, it will be created by the system.
+    ///     - cleanupExistingSocketFile: Whether to cleanup an existing socket file at `path`.
+    public func bind(unixDomainSocketPath: String, cleanupExistingSocketFile: Bool) -> EventLoopFuture<Channel> {
+        if cleanupExistingSocketFile {
+            do {
+                try BaseSocket.cleanupSocket(unixDomainSocketPath: unixDomainSocketPath)
+            } catch {
+                return group.next().makeFailedFuture(error)
+            }
+        }
+
+        return self.bind(unixDomainSocketPath: unixDomainSocketPath)
     }
 
     private func bind0(_ makeSocketAddress: () throws -> SocketAddress) -> EventLoopFuture<Channel> {

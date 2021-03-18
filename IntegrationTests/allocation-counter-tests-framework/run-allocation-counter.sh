@@ -3,7 +3,7 @@
 ##
 ## This source file is part of the SwiftNIO open source project
 ##
-## Copyright (c) 2019 Apple Inc. and the SwiftNIO project authors
+## Copyright (c) 2019-2020 Apple Inc. and the SwiftNIO project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
@@ -24,6 +24,7 @@ function die() {
 
 function make_git_commit_all() {
     git init > /dev/null
+    git checkout -b main > /dev/null
     if [[ "$(git config user.email)" == "" ]]; then
         git config --local user.email does@really-not.matter
         git config --local user.name 'Does Not Matter'
@@ -54,8 +55,8 @@ EOF
     cat <<EOF
     ],
     dependencies: [
-        .package(url: "HookedFunctions/", .branch("master")),
-        .package(url: "$swiftpm_pkg_name/", .branch("master")),
+        .package(url: "HookedFunctions/", .branch("main")),
+        .package(url: "$swiftpm_pkg_name/", .branch("main")),
 EOF
     if [[ -n "$extra_dependencies_file" ]]; then
         cat "$extra_dependencies_file"
@@ -111,7 +112,7 @@ EOF
 }
 
 # <target> <template> <swiftpm_pkg_root> <swiftpm_pkg_name> <hooked_function_module> <bootstrap_module>
-# <shared file> <extra_dependencies_file> <modules...> -- <test_files...>
+# <extra_dependencies_file> <shared files...> -- <modules...> -- <test_files...>
 function build_package() {
     local target=$1
     local template=$2
@@ -119,9 +120,15 @@ function build_package() {
     local swiftpm_pkg_name=$4
     local hooked_function_module=$5
     local bootstrap_module=$6
-    local shared_file=$7
-    local extra_dependencies_file=$8
-    shift 8
+    local extra_dependencies_file=$7
+    shift 7
+
+    local shared_files=()
+    while [[ "$1" != "--" ]]; do
+        shared_files+=( "$1" )
+        shift
+    done
+    shift
 
     local modules=()
     while [[ "$1" != "--" ]]; do
@@ -175,9 +182,10 @@ function build_package() {
 EOF
         ln -s "$f" "Sources/Test_$module/file.swift"
         ln -s "../../scaffolding.swift" "Sources/Test_$module/"
-        if [[ -n "$shared_file" ]]; then
-            ln -s "$shared_file" "Sources/Test_$module/shared.swift"
-        fi
+        for shared_file in "${shared_files[@]+"${shared_files[@]}"}"; do
+            name=$(basename "$shared_file")
+            ln -s "$shared_file" "Sources/Test_$module/$name"
+        done
     done
     hooked_package_swift_end >> Package.swift
 
@@ -200,7 +208,7 @@ function find_swiftpm_package_name() {
 
 do_hooking=true
 pkg_root="$here/.."
-shared_file=""
+shared_files=()
 modules=()
 extra_dependencies_file=""
 tmp_dir="/tmp"
@@ -211,7 +219,7 @@ while getopts "ns:p:m:d:t:" opt; do
             do_hooking=false
             ;;
         s)
-            shared_file="$OPTARG"
+            shared_files+=( $(abs_path "$OPTARG") )
             ;;
         p)
             pkg_root=$(abs_path "$OPTARG")
@@ -249,10 +257,6 @@ for f in "$@"; do
     files+=( "$(abs_path "$f")" )
 done
 
-if [[ -n "$shared_file" ]]; then
-    shared_file=$(abs_path "$shared_file")
-fi
-
 test -d "$pkg_root" || die "package root '$pkg_root' not a directory"
 for f in "${files[@]}"; do
     test -f "$f" || die "file '$f' not a file"
@@ -275,8 +279,9 @@ build_package \
     "$(find_swiftpm_package_name "$pkg_root")" \
     "$selected_hooked_functions" \
     "$selected_bootstrap" \
-    "$shared_file" \
     "$extra_dependencies_file" \
+    "${shared_files[@]+"${shared_files[@]}"}" \
+    -- \
     "${modules[@]}" \
     -- \
     "${files[@]}"

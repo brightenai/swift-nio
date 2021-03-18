@@ -19,7 +19,7 @@ import NIOConcurrencyHelpers
 /// - warning: If you are not implementing a custom `Channel` type, you should never call any of these.
 ///
 /// - note: All methods must be called from the `EventLoop` thread.
-public protocol ChannelCore: class {
+public protocol ChannelCore: AnyObject {
     /// Returns the local bound `SocketAddress`.
     func localAddress0() throws -> SocketAddress
 
@@ -102,7 +102,7 @@ public protocol ChannelCore: class {
 /// passed to or returned by the operations are used to retrieve the result of an operation after it has completed.
 ///
 /// A `Channel` owns its `ChannelPipeline` which handles all I/O events and requests associated with the `Channel`.
-public protocol Channel: class, ChannelOutboundInvoker {
+public protocol Channel: AnyObject, ChannelOutboundInvoker {
     /// The `Channel`'s `ByteBuffer` allocator. This is _the only_ supported way of allocating `ByteBuffer`s to be used with this `Channel`.
     var allocator: ByteBufferAllocator { get }
 
@@ -140,6 +140,30 @@ public protocol Channel: class, ChannelOutboundInvoker {
     ///
     /// - warning: Unsafe, this is for use in NIO's core only.
     var _channelCore: ChannelCore { get }
+
+    /// Returns a view of the `Channel` exposing synchronous versions of `setOption` and `getOption`.
+    /// The default implementation returns `nil`, and `Channel` implementations must opt in to
+    /// support this behavior.
+    var syncOptions: NIOSynchronousChannelOptions? { get }
+}
+
+extension Channel {
+    /// Default implementation: `NIOSynchronousChannelOptions` are not supported.
+    public var syncOptions: NIOSynchronousChannelOptions? {
+        return nil
+    }
+}
+
+public protocol NIOSynchronousChannelOptions {
+    /// Set `option` to `value` on this `Channel`.
+    ///
+    /// - Important: Must be called on the `EventLoop` the `Channel` is running on.
+    func setOption<Option: ChannelOption>(_ option: Option, value: Option.Value) throws
+
+    /// Get the value of `option` for this `Channel`.
+    ///
+    /// - Important: Must be called on the `EventLoop` the `Channel` is running on.
+    func getOption<Option: ChannelOption>(_ option: Option) throws -> Option.Value
 }
 
 /// A `SelectableChannel` is a `Channel` that can be used with a `Selector` which notifies a user when certain events
@@ -339,6 +363,7 @@ public enum ChannelError: Error {
     case illegalMulticastAddress(SocketAddress)
 
     /// Multicast is not supported on Interface
+    @available(*, deprecated, renamed: "NIOMulticastNotSupportedError")
     case multicastNotSupported(NIONetworkInterface)
 
     /// An operation that was inappropriate given the current `Channel` state was attempted.
@@ -352,6 +377,20 @@ extension ChannelError: Equatable { }
 
 /// The removal of a `ChannelHandler` using `ChannelPipeline.removeHandler` has been attempted more than once.
 public struct NIOAttemptedToRemoveHandlerMultipleTimesError: Error {}
+
+/// Multicast is not supported on this interface.
+public struct NIOMulticastNotSupportedError: Error {
+    public var device: NIONetworkDevice
+
+    public init(device: NIONetworkDevice) {
+        self.device = device
+    }
+}
+
+/// Multicast has not been properly implemented on this channel.
+public struct NIOMulticastNotImplementedError: Error {
+    public init() {}
+}
 
 /// An `Channel` related event that is passed through the `ChannelPipeline` to notify the user.
 public enum ChannelEvent: Equatable {

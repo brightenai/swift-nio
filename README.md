@@ -1,4 +1,4 @@
-[![sswg:graduated|104x20](https://img.shields.io/badge/sswg-graduated-green.svg)](https://github.com/swift-server/sswg/blob/master/process/incubation.md#graduated-level)
+[![sswg:graduated|104x20](https://img.shields.io/badge/sswg-graduated-green.svg)](https://github.com/swift-server/sswg/blob/main/process/incubation.md#graduated-level)
 
 # SwiftNIO
 
@@ -17,7 +17,8 @@ Repository | NIO 2 (Swift 5+) | NIO 1 (Swift 4+)
 [https://github.com/apple/swift-nio-ssl][repo-nio-ssl] <br> TLS (SSL) support | `from: "2.0.0"` | `from: "1.0.0"`
 [https://github.com/apple/swift-nio-http2][repo-nio-http2]<br> HTTP/2 support | `from: "1.0.0"` | `from: "0.1.0"`
 [https://github.com/apple/swift-nio-extras][repo-nio-extras] <br>useful additions around SwiftNIO | `from: "1.0.0"` | `from: "0.1.0"`
-[https://github.com/apple/swift-nio-transport-services][repo-nio-transport-services] <br> first-class support for macOS, iOS, and tvOS | `from: "1.0.0"` | `from: "0.1.0"`
+[https://github.com/apple/swift-nio-transport-services][repo-nio-transport-services] <br> first-class support for macOS, iOS, tvOS, and watchOS | `from: "1.0.0"` | `from: "0.1.0"`
+[https://github.com/apple/swift-nio-ssh][repo-nio-ssh] <br> SSH support | `.upToNextMinor(from: "0.2.0")` | _n/a_
 
 ### Protocol Implementations
 
@@ -33,6 +34,8 @@ HTTP/1 | ✅| ✅ | [apple/swift-nio](https://github.com/apple/swift-nio) | [`NI
 HTTP/2 | ✅| ✅ | [apple/swift-nio-http2](https://github.com/apple/swift-nio-http2) | [`NIOHTTP2`](https://apple.github.io/swift-nio-http2/docs/current/NIOHTTP2/index.html) | official NIO project
 WebSocket | ✅| ✅ | [apple/swift-nio](https://github.com/apple/swift-nio) | [`NIOWebSocket`](https://apple.github.io/swift-nio/docs/current/NIOWebSocket/index.html) | official NIO project
 TLS | ✅ | ✅ | [apple/swift-nio-ssl](https://github.com/apple/swift-nio-ssl) | [`NIOSSL`](https://apple.github.io/swift-nio-ssl/docs/current/NIOSSL/index.html) | official NIO project
+SSH | ✅ | ✅ | [apple/swift-nio-ssh][repo-nio-ssh] | _n/a_ | official NIO project
+
 
 #### High-level implementations
 
@@ -51,7 +54,7 @@ Redis | ✅ | ❌ | [mordil/swift-redi-stack](https://gitlab.com/Mordil/swift-re
 SwiftNIO aims to support all of the platforms where Swift is supported. Currently, it is developed and tested on macOS and Linux, and is known to support the following operating system versions:
 
 * Ubuntu 14.04+
-* macOS 10.9+, iOS 7+; (macOS 10.14+, iOS 12+, or tvOS 12+ with [swift-nio-transport-services][repo-nio-transport-services])
+* macOS 10.9+, iOS 7+; (macOS 10.14+, iOS 12+, tvOS 12+ or watchOS 6+ with [swift-nio-transport-services][repo-nio-transport-services])
 
 ### Swift versions
 
@@ -61,7 +64,7 @@ The latest released SwiftNIO 1 version supports Swift 4.0, 4.1, 4.2, and 5.0.
 
 #### SwiftNIO 2
 
-The latest released SwiftNIO 2 version supports only Swift 5.0, 5.1, and 5.2. If you have a SwiftNIO 1 application or library that you would like to migrate to SwiftNIO 2, please check out the [migration guide](docs/migration-guide-NIO1-to-NIO2.md) we prepared for you.
+The latest released SwiftNIO 2 version supports Swift 5.0, 5.1, 5.2, and 5.3. If you have a SwiftNIO 1 application or library that you would like to migrate to SwiftNIO 2, please check out the [migration guide](docs/migration-guide-NIO1-to-NIO2.md) we prepared for you.
 
 ### Compatibility
 
@@ -186,16 +189,16 @@ The core SwiftNIO repository will contain a few extremely important protocol imp
 
 There are currently several example projects that demonstrate how to use SwiftNIO.
 
-- **chat client** https://github.com/apple/swift-nio/tree/master/Sources/NIOChatClient
-- **chat server** https://github.com/apple/swift-nio/tree/master/Sources/NIOChatServer
-- **echo client** https://github.com/apple/swift-nio/tree/master/Sources/NIOEchoClient
-- **echo server** https://github.com/apple/swift-nio/tree/master/Sources/NIOEchoServer
-- **UDP echo client** https://github.com/apple/swift-nio/tree/master/Sources/NIOUDPEchoClient
-- **UDP echo server** https://github.com/apple/swift-nio/tree/master/Sources/NIOUDPEchoServer
-- **HTTP client** https://github.com/apple/swift-nio/tree/master/Sources/NIOHTTP1Client
-- **HTTP server** https://github.com/apple/swift-nio/tree/master/Sources/NIOHTTP1Server
-- **WebSocket client** https://github.com/apple/swift-nio/tree/master/Sources/NIOWebSocketClient
-- **WebSocket server** https://github.com/apple/swift-nio/tree/master/Sources/NIOWebSocketServer
+- **chat client** https://github.com/apple/swift-nio/tree/main/Sources/NIOChatClient
+- **chat server** https://github.com/apple/swift-nio/tree/main/Sources/NIOChatServer
+- **echo client** https://github.com/apple/swift-nio/tree/main/Sources/NIOEchoClient
+- **echo server** https://github.com/apple/swift-nio/tree/main/Sources/NIOEchoServer
+- **UDP echo client** https://github.com/apple/swift-nio/tree/main/Sources/NIOUDPEchoClient
+- **UDP echo server** https://github.com/apple/swift-nio/tree/main/Sources/NIOUDPEchoServer
+- **HTTP client** https://github.com/apple/swift-nio/tree/main/Sources/NIOHTTP1Client
+- **HTTP server** https://github.com/apple/swift-nio/tree/main/Sources/NIOHTTP1Server
+- **WebSocket client** https://github.com/apple/swift-nio/tree/main/Sources/NIOWebSocketClient
+- **WebSocket server** https://github.com/apple/swift-nio/tree/main/Sources/NIOWebSocketServer
 
 To build & run them, run following command, replace TARGET_NAME with the folder name under `./Sources`
 
@@ -228,7 +231,7 @@ modules, specify the following dependencies:
 
     dependencies: ["NIO", "NIOHTTP1"]
 
-#### Swift 5.2 (`swift-tools-version:5.2`)
+#### Swift 5.2 and newer (`swift-tools-version:5.2`)
 
     dependencies: [.product(name: "NIO", package: "swift-nio"),
                    .product(name: "NIOHTTP1", package: "swift-nio")]
@@ -299,7 +302,7 @@ For the most part, SwiftNIO development is as straightforward as any other Swift
 
 ### Prerequisites
 
-SwiftNIO's `master` branch is the development branch for the next releases of SwiftNIO 2, it's Swift 5-only.
+SwiftNIO's `main` branch is the development branch for the next releases of SwiftNIO 2, it's Swift 5-only.
 
 To be able to compile and run SwiftNIO and the integration tests, you need to
 have a few prerequisites installed on your system.
@@ -310,7 +313,7 @@ have a few prerequisites installed on your system.
 
 ### Linux
 
-- Swift 5.0, 5.1, or 5.2 from [swift.org/download](https://swift.org/download/#releases). We always recommend to use the latest released version.
+- Swift 5.0, 5.1, 5.2, or 5.3 from [swift.org/download](https://swift.org/download/#releases). We always recommend to use the latest released version.
 - netcat (for integration tests only)
 - lsof (for integration tests only)
 - shasum (for integration tests only)
@@ -349,3 +352,4 @@ dnf install swift-lang /usr/bin/nc /usr/bin/lsof /usr/bin/shasum
 [repo-nio-http2]: https://github.com/apple/swift-nio-http2
 [repo-nio-ssl]: https://github.com/apple/swift-nio-ssl
 [repo-nio-transport-services]: https://github.com/apple/swift-nio-transport-services
+[repo-nio-ssh]: https://github.com/apple/swift-nio-ssh

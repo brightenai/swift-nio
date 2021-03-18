@@ -63,7 +63,7 @@ class SystemTest: XCTestCase {
     private static let cmsghdr_secondDataCount = 1
     private static let cmsghdr_firstType = IP_RECVDSTADDR
     private static let cmsghdr_secondType = IP_RECVTOS
-    #elseif os(Linux)
+    #elseif os(Linux) || os(Android)
     // Example twin data options captured on Linux
     private static let cmsghdrExample: [UInt8] = [
         0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Length 28 including header.
@@ -92,7 +92,7 @@ class SystemTest: XCTestCase {
             msgHdr.msg_controllen = .init(pCmsgHdr.count)
 
             withUnsafePointer(to: msgHdr) { pMsgHdr in
-                let result = Posix.cmsgFirstHeader(inside: pMsgHdr)
+                let result = NIOBSDSocketControlMessage.firstHeader(inside: pMsgHdr)
                 XCTAssertEqual(pCmsgHdr.baseAddress, result)
             }
         }
@@ -106,11 +106,11 @@ class SystemTest: XCTestCase {
             msgHdr.msg_controllen = .init(pCmsgHdr.count)
 
             withUnsafeMutablePointer(to: &msgHdr) { pMsgHdr in
-                let first = Posix.cmsgFirstHeader(inside: pMsgHdr)
-                let second = Posix.cmsgNextHeader(inside: pMsgHdr, after: first!)
+                let first = NIOBSDSocketControlMessage.firstHeader(inside: pMsgHdr)
+                let second = NIOBSDSocketControlMessage.nextHeader(inside: pMsgHdr, after: first!)
                 let expectedSecondStart = pCmsgHdr.baseAddress! + SystemTest.cmsghdr_secondStartPosition
                 XCTAssertEqual(expectedSecondStart, second!)
-                let third = Posix.cmsgNextHeader(inside: pMsgHdr, after: second!)
+                let third = NIOBSDSocketControlMessage.nextHeader(inside: pMsgHdr, after: second!)
                 XCTAssertEqual(third, nil)
             }
         }
@@ -124,8 +124,8 @@ class SystemTest: XCTestCase {
             msgHdr.msg_controllen = .init(pCmsgHdr.count)
 
             withUnsafePointer(to: msgHdr) { pMsgHdr in
-                let first = Posix.cmsgFirstHeader(inside: pMsgHdr)
-                let firstData = Posix.cmsgData(for: first!)
+                let first = NIOBSDSocketControlMessage.firstHeader(inside: pMsgHdr)
+                let firstData = NIOBSDSocketControlMessage.data(for: first!)
                 let expecedFirstData = UnsafeRawBufferPointer(
                     rebasing: pCmsgHdr[SystemTest.cmsghdr_firstDataStart..<(
                                         SystemTest.cmsghdr_firstDataStart + SystemTest.cmsghdr_firstDataCount)])

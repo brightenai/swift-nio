@@ -16,7 +16,7 @@
 set -eu
 
 function usage() {
-  echo "$0 [-u] VERSION"
+  echo "$0 [-u] [-f skipUpToTarget] version"
   echo
   echo "OPTIONS:"
   echo "  -u: Additionally, upload the podspecs as they are generated"
@@ -44,7 +44,7 @@ done
 shift "$((OPTIND-1))"
 
 if [[ $# -eq 0 ]]; then
-  echo "Must provide target version"
+  usage
   exit 1
 fi
 
@@ -104,6 +104,7 @@ Pod::Spec.new do |s|
   s.ios.deployment_target = '10.0'
   s.osx.deployment_target = '10.10'
   s.tvos.deployment_target = '10.0'
+  s.watchos.deployment_target = '6.0'
 
   s.source_files = 'Sources/${target#Swift}/**/*.{swift,c,h}'
   ${dependencies[*]-}

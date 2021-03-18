@@ -12,6 +12,62 @@
 //
 //===----------------------------------------------------------------------===//
 
+#if os(Windows)
+import ucrt
+
+import let WinSDK.INVALID_SOCKET
+
+import let WinSDK.IPPROTO_IP
+import let WinSDK.IPPROTO_IPV6
+import let WinSDK.IPPROTO_TCP
+
+import let WinSDK.IP_ADD_MEMBERSHIP
+import let WinSDK.IP_DROP_MEMBERSHIP
+import let WinSDK.IP_MULTICAST_IF
+import let WinSDK.IP_MULTICAST_LOOP
+import let WinSDK.IP_MULTICAST_TTL
+import let WinSDK.IP_RECVTOS
+import let WinSDK.IPV6_JOIN_GROUP
+import let WinSDK.IPV6_LEAVE_GROUP
+import let WinSDK.IPV6_MULTICAST_HOPS
+import let WinSDK.IPV6_MULTICAST_IF
+import let WinSDK.IPV6_MULTICAST_LOOP
+import let WinSDK.IPV6_RECVTCLASS
+import let WinSDK.IPV6_V6ONLY
+
+import let WinSDK.AF_INET
+import let WinSDK.AF_INET6
+import let WinSDK.AF_UNIX
+
+import let WinSDK.PF_INET
+import let WinSDK.PF_INET6
+import let WinSDK.PF_UNIX
+
+import let WinSDK.SOCK_DGRAM
+import let WinSDK.SOCK_STREAM
+
+import let WinSDK.SO_ERROR
+import let WinSDK.SO_KEEPALIVE
+import let WinSDK.SO_LINGER
+import let WinSDK.SO_RCVBUF
+import let WinSDK.SO_RCVTIMEO
+import let WinSDK.SO_REUSEADDR
+
+import let WinSDK.SOL_SOCKET
+
+import let WinSDK.TCP_NODELAY
+
+import struct WinSDK.SOCKET
+
+import struct WinSDK.WSACMSGHDR
+import struct WinSDK.WSAMSG
+
+import struct WinSDK.socklen_t
+
+internal typealias msghdr = WSAMSG
+internal typealias cmsghdr = WSACMSGHDR
+#endif
+
 protocol _SocketShutdownProtocol {
     var cValue: CInt { get }
 }
@@ -27,6 +83,12 @@ public enum NIOBSDSocket {
     public typealias Handle = SOCKET
 #else
     public typealias Handle = CInt
+#endif
+
+#if os(Windows)
+    internal static let invalidHandle: Handle = INVALID_SOCKET
+#else
+    internal static let invalidHandle: Handle = -1
 #endif
 }
 
@@ -237,10 +299,13 @@ extension NIOBSDSocket.Option {
     /// Control multicast time-to-live.
     public static let ip_multicast_ttl: NIOBSDSocket.Option =
             NIOBSDSocket.Option(rawValue: IP_MULTICAST_TTL)
-    
-    /// Request that we are passed type of service details when receiving datagrams.
-    /// Not public as the way to request this is to use `ChannelOptions.explicitCongestionNotification`
-    /// which works for both IPv4 and IPv6.
+
+    /// Request that we are passed type of service details when receiving
+    /// datagrams.
+    ///
+    /// Not public as the way to request this is to use
+    /// `ChannelOptions.explicitCongestionNotification` which works for both
+    /// IPv4 and IPv6.
     static let ip_recv_tos: NIOBSDSocket.Option =
             NIOBSDSocket.Option(rawValue: IP_RECVTOS)
 }
@@ -271,10 +336,13 @@ extension NIOBSDSocket.Option {
     /// restricted to IPv6 only.
     public static let ipv6_v6only: NIOBSDSocket.Option =
             NIOBSDSocket.Option(rawValue: IPV6_V6ONLY)
-    
-    /// Request that we are passed traffic class details when receiving datagrams.
-    /// Not public as the way to request this is to use `ChannelOptions.explicitCongestionNotification`
-    /// which works for both IPv4 and IPv6.
+
+    /// Request that we are passed traffic class details when receiving
+    /// datagrams.
+    ///
+    /// Not public as the way to request this is to use
+    /// `ChannelOptions.explicitCongestionNotification` which works for both
+    /// IPv4 and IPv6.
     static let ipv6_recv_tclass: NIOBSDSocket.Option =
             NIOBSDSocket.Option(rawValue: IPV6_RECVTCLASS)
 }
@@ -337,10 +405,14 @@ extension NIOBSDSocket.Option {
 }
 #endif
 
+/// The requested UDS path exists and has wrong type (not a socket).
+public struct UnixDomainSocketPathWrongType: Error {}
 
-/// This protocol defines the methods that are expected to be found on `NIOBSDSocket`. While defined as a protocol
-/// there is no expectation that any object other than `NIOBSDSocket` will implement this protocol: instead, this protocol
-/// acts as a reference for what new supported operating systems must implement.
+/// This protocol defines the methods that are expected to be found on
+/// `NIOBSDSocket`. While defined as a protocol there is no expectation that any
+/// object other than `NIOBSDSocket` will implement this protocol: instead, this
+/// protocol acts as a reference for what new supported operating systems must
+/// implement.
 protocol _BSDSocketProtocol {
     static func accept(socket s: NIOBSDSocket.Handle,
                        address addr: UnsafeMutablePointer<sockaddr>?,
@@ -376,11 +448,19 @@ protocol _BSDSocketProtocol {
                      buffer buf: UnsafeMutableRawPointer,
                      length len: size_t) throws -> IOResult<size_t>
 
-    static func recvmsg(descriptor: CInt, msgHdr: UnsafeMutablePointer<msghdr>, flags: CInt) throws -> IOResult<ssize_t>
-    
-    static func sendmsg(descriptor: CInt,
-                        msgHdr: UnsafePointer<msghdr>,
-                        flags: CInt) throws -> IOResult<ssize_t>
+    // NOTE: this should return a `ssize_t`, however, that is not a standard
+    // type, and defining that type is difficult.  Opt to return a `size_t`
+    // which is the same size, but is unsigned.
+    static func recvmsg(socket: NIOBSDSocket.Handle,
+                        msgHdr: UnsafeMutablePointer<msghdr>, flags: CInt)
+            throws -> IOResult<size_t>
+
+    // NOTE: this should return a `ssize_t`, however, that is not a standard
+    // type, and defining that type is difficult.  Opt to return a `size_t`
+    // which is the same size, but is unsigned.
+    static func sendmsg(socket: NIOBSDSocket.Handle,
+                        msgHdr: UnsafePointer<msghdr>, flags: CInt)
+            throws -> IOResult<size_t>
 
     static func send(socket s: NIOBSDSocket.Handle,
                      buffer buf: UnsafeRawPointer,
@@ -425,9 +505,15 @@ protocol _BSDSocketProtocol {
                        size: size_t,
                        offset: off_t) throws -> IOResult<size_t>
 
-    static func poll(fds: UnsafeMutablePointer<pollfd>,
-                     nfds: nfds_t,
+#if !os(Windows)
+    // NOTE: We do not support this on Windows as WSAPoll behaves differently
+    // from poll with reporting of failed connections (Connect Report 309411),
+    // which recommended that you use NetAPI instead.
+    //
+    // This is safe to exclude as this is a testing-only API.
+    static func poll(fds: UnsafeMutablePointer<pollfd>, nfds: nfds_t,
                      timeout: CInt) throws -> CInt
+#endif
 
     static func inet_ntop(af family: NIOBSDSocket.AddressFamily,
                           src addr: UnsafeRawPointer,
@@ -443,8 +529,41 @@ protocol _BSDSocketProtocol {
                          offset: off_t,
                          len: off_t) throws -> IOResult<Int>
 
+    // MARK: non-BSD APIs added by NIO
+
     static func setNonBlocking(socket: NIOBSDSocket.Handle) throws
+
+    static func cleanupUnixDomainSocket(atPath path: String) throws
 }
 
-/// If this extension is hitting a compile error, your platform is missing one of the functions defined above!
+/// If this extension is hitting a compile error, your platform is missing one
+/// of the functions defined above!
 extension NIOBSDSocket: _BSDSocketProtocol { }
+
+/// This protocol defines the methods that are expected to be found on
+/// `NIOBSDControlMessage`. While defined as a protocol there is no expectation
+/// that any object other than `NIOBSDControlMessage` will implement this
+/// protocol: instead, this protocol acts as a reference for what new supported
+/// operating systems must implement.
+protocol _BSDSocketControlMessageProtocol {
+    static func firstHeader(inside msghdr: UnsafePointer<msghdr>)
+            -> UnsafeMutablePointer<cmsghdr>?
+
+    static func nextHeader(inside msghdr: UnsafeMutablePointer<msghdr>,
+                           after: UnsafeMutablePointer<cmsghdr>)
+            -> UnsafeMutablePointer<cmsghdr>?
+
+    static func data(for header: UnsafePointer<cmsghdr>)
+            -> UnsafeRawBufferPointer?
+
+    static func data(for header: UnsafeMutablePointer<cmsghdr>)
+            -> UnsafeMutableRawBufferPointer?
+
+    static func length(payloadSize: size_t) -> size_t
+
+    static func space(payloadSize: size_t) -> size_t
+}
+
+/// If this extension is hitting a compile error, your platform is missing one
+/// of the functions defined above!
+enum NIOBSDSocketControlMessage: _BSDSocketControlMessageProtocol { }

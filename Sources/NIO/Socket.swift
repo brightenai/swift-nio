@@ -190,10 +190,25 @@ typealias IOVector = iovec
         }
         #else
         var vec = iovec(iov_base: UnsafeMutableRawPointer(mutating: pointer.baseAddress!), iov_len: pointer.count)
+//        var vec = iovec(iov_base: UnsafeMutableRawPointer(mutating: pointer.baseAddress!), iov_len: numericCast(pointer.count))
+
         let notConstCorrectDestinationPtr = UnsafeMutableRawPointer(mutating: destinationPtr)
 
         return try withUnsafeHandle { handle in
             return try withUnsafeMutablePointer(to: &vec) { vecPtr in
+#if os(Windows)
+                var messageHeader =
+                    WSAMSG(name: notConstCorrectDestinationPtr
+                                    .assumingMemoryBound(to: sockaddr.self),
+                           namelen: destinationSize,
+                           lpBuffers: vecPtr,
+                           dwBufferCount: 1,
+                           Control: WSABUF(len: ULONG(controlBytes.count),
+                                           buf: controlBytes.baseAddress?
+                                                    .bindMemory(to: CHAR.self,
+                                                                capacity: controlBytes.count)),
+                           dwFlags: 0)
+#else
                 var messageHeader = msghdr(msg_name: notConstCorrectDestinationPtr,
                                            msg_namelen: destinationSize,
                                            msg_iov: vecPtr,
@@ -201,7 +216,8 @@ typealias IOVector = iovec
                                            msg_control: controlBytes.baseAddress,
                                            msg_controllen: .init(controlBytes.count),
                                            msg_flags: 0)
-                return try Posix.sendmsg(descriptor: handle, msgHdr: &messageHeader, flags: 0)
+#endif
+                return try NIOBSDSocket.sendmsg(socket: handle, msgHdr: &messageHeader, flags: 0)
             }
         }
         #endif
@@ -244,8 +260,24 @@ typealias IOVector = iovec
         #else
         var vec = iovec(iov_base: pointer.baseAddress, iov_len: pointer.count)
         #endif
+//        var vec = iovec(iov_base: pointer.baseAddress, iov_len: numericCast(pointer.count))
+
         return try withUnsafeMutablePointer(to: &vec) { vecPtr in
             return try storage.withMutableSockAddr { (sockaddrPtr, _) in
+#if os(Windows)
+                var messageHeader =
+                    WSAMSG(name: sockaddrPtr, namelen: storageLen,
+                           lpBuffers: vecPtr, dwBufferCount: 1,
+                           Control: WSABUF(len: ULONG(controlBytes.controlBytesBuffer.count),
+                                           buf: controlBytes.controlBytesBuffer.baseAddress?
+                                                    .bindMemory(to: CHAR.self,
+                                                                capacity: controlBytes.controlBytesBuffer.count)),
+                           dwFlags: 0)
+                defer {
+                    // We need to write back the length of the message.
+                    storageLen = messageHeader.namelen
+                }
+#else
                 var messageHeader = msghdr(msg_name: sockaddrPtr,
                                            msg_namelen: storageLen,
                                            msg_iov: vecPtr,
@@ -257,10 +289,11 @@ typealias IOVector = iovec
                     // We need to write back the length of the message.
                     storageLen = messageHeader.msg_namelen
                 }
+#endif
 
                 let result = try withUnsafeMutablePointer(to: &messageHeader) { messageHeader in
                     return try withUnsafeHandle { fd in
-                        return try NIOBSDSocket.recvmsg(descriptor: fd, msgHdr: messageHeader, flags: 0)
+                        return try NIOBSDSocket.recvmsg(socket: fd, msgHdr: messageHeader, flags: 0)
                     }
                 }
                 

@@ -38,10 +38,16 @@ var targets: [PackageDescription.Target] = [
 //                            .unsafeFlags([ "-Xlinker","-soname=libNIOFoundationCompat.so"],.when(platforms: [.android])),
 //                             ]
     ),
+//                           "CNIODarwin",
+//                           "CNIOWindows",
+//                           "NIOConcurrencyHelpers"]),
+//    .target(name: "NIOFoundationCompat", dependencies: ["NIO"]),
+
     .target(name: "CNIOAtomics", dependencies: []),
     .target(name: "CNIOSHA1", dependencies: []),
     .target(name: "CNIOLinux", dependencies: []),
     .target(name: "CNIODarwin", dependencies: []),
+    .target(name: "CNIOWindows", dependencies: []),
     .target(name: "NIOConcurrencyHelpers",
             dependencies: ["CNIOAtomics"]
 //            linkerSettings: [

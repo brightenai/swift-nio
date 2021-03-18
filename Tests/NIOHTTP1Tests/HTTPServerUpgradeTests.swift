@@ -623,7 +623,7 @@ class HTTPServerUpgradeTestCase: XCTestCase {
                 XCTAssertEqual(proto, "myproto")
                 XCTAssertEqual(req.method, .OPTIONS)
                 XCTAssertEqual(req.uri, "*")
-                XCTAssertEqual(req.version, HTTPVersion(major: 1, minor: 1))
+                XCTAssertEqual(req.version, .http1_1)
             } else {
                 XCTFail("Unexpected event: \(eventSaver.events[0])")
             }
@@ -866,14 +866,7 @@ class HTTPServerUpgradeTestCase: XCTestCase {
 
         let channel = EmbeddedChannel()
         defer {
-            do {
-                let complete = try channel.finish()
-                XCTAssertTrue(complete.isClean)
-            } catch No.no {
-                // ok
-            } catch {
-                XCTFail("Unexpected error: \(error)")
-            }
+            XCTAssertTrue(try channel.finish().isClean)
         }
 
         var upgradingProtocol = ""
@@ -930,14 +923,7 @@ class HTTPServerUpgradeTestCase: XCTestCase {
 
         let channel = EmbeddedChannel()
         defer {
-            do {
-                let isCleanOnFinish = try channel.finish().isClean
-                XCTAssertTrue(isCleanOnFinish)
-            } catch No.no {
-                // ok
-            } catch {
-                XCTFail("Unexpected error: \(error)")
-            }
+            XCTAssertTrue(try channel.finish().isClean)
         }
 
         var upgradeRequested = false
@@ -996,14 +982,7 @@ class HTTPServerUpgradeTestCase: XCTestCase {
 
         let channel = EmbeddedChannel()
         defer {
-            do {
-                let isCleanOnFinish = try channel.finish().isClean
-                XCTAssertTrue(isCleanOnFinish)
-            } catch No.no {
-                // ok
-            } catch {
-                XCTFail("Unexpected error: \(error)")
-            }
+            XCTAssertTrue(try channel.finish().isClean)
         }
 
         var upgradeRequested = false
@@ -1031,7 +1010,7 @@ class HTTPServerUpgradeTestCase: XCTestCase {
 
         // We now need to inject an extra buffered request. To do this we grab the context for the HTTPRequestDecoder and inject some reads.
         XCTAssertNoThrow(try channel.pipeline.context(handlerType: ByteToMessageHandler<HTTPRequestDecoder>.self).map { context in
-            let requestHead = HTTPServerRequestPart.head(.init(version: .init(major: 1, minor: 1), method: .GET, uri: "/test"))
+            let requestHead = HTTPServerRequestPart.head(.init(version: .http1_1, method: .GET, uri: "/test"))
             context.fireChannelRead(NIOAny(requestHead))
             context.fireChannelRead(NIOAny(HTTPServerRequestPart.end(nil)))
         }.wait())

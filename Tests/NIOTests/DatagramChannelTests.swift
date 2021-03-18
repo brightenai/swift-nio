@@ -119,7 +119,7 @@ final class DatagramChannelTests: XCTestCase {
     private var supportsIPv6: Bool {
         do {
             let ipv6Loopback = try SocketAddress(ipAddress: "::1", port: 0)
-            return try System.enumerateInterfaces().contains(where: { $0.address == ipv6Loopback })
+            return try System.enumerateDevices().contains(where: { $0.address == ipv6Loopback })
         } catch {
             return false
         }
@@ -752,5 +752,43 @@ final class DatagramChannelTests: XCTestCase {
             return // need to skip IPv6 tests if we don't support it.
         }
         testEcnReceive(address: "::1", vectorRead: true, vectorSend: true)
+    }
+
+    func testWritabilityChangeDuringReentrantFlushNow() throws {
+        class EnvelopingHandler: ChannelOutboundHandler {
+            typealias OutboundIn = ByteBuffer
+            typealias OutboundOut = AddressedEnvelope<ByteBuffer>
+
+            func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+                let buffer = self.unwrapOutboundIn(data)
+                context.write(self.wrapOutboundOut(AddressedEnvelope(remoteAddress: context.channel.localAddress!, data: buffer)), promise: promise)
+            }
+        }
+
+        let loop = self.group.next()
+        let handler = ReentrantWritabilityChangingHandler(becameUnwritable: loop.makePromise(),
+                                                          becameWritable: loop.makePromise())
+
+        let channel1Future = DatagramBootstrap(group: self.group)
+            .bind(host: "localhost", port: 0)
+        let channel1 = try assertNoThrowWithValue(try channel1Future.wait())
+        defer {
+            XCTAssertNoThrow(try channel1.close().wait())
+        }
+
+        let channel2Future = DatagramBootstrap(group: self.group)
+            .channelOption(ChannelOptions.writeBufferWaterMark, value: handler.watermark)
+            .channelInitializer { channel in
+                channel.pipeline.addHandlers([EnvelopingHandler(), handler])
+            }
+            .bind(host: "localhost", port: 0)
+        let channel2 = try assertNoThrowWithValue(try channel2Future.wait())
+        defer {
+            XCTAssertNoThrow(try channel2.close().wait())
+        }
+
+        // Now wait.
+        XCTAssertNoThrow(try handler.becameUnwritable.futureResult.wait())
+        XCTAssertNoThrow(try handler.becameWritable.futureResult.wait())
     }
 }

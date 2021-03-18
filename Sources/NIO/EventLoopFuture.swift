@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftNIO open source project
 //
-// Copyright (c) 2017-2018 Apple Inc. and the SwiftNIO project authors
+// Copyright (c) 2017-2020 Apple Inc. and the SwiftNIO project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 import NIOConcurrencyHelpers
+import Dispatch
 
 /// Internal list of callbacks.
 ///
@@ -112,7 +113,11 @@ internal struct CallbackList {
 }
 
 /// Internal error for operations that return results that were not replaced
-private struct OperationPlaceholderError: Error { }
+@usableFromInline
+internal struct OperationPlaceholderError: Error {
+    @usableFromInline
+    internal init() {}
+}
 
 /// A promise to provide a result later.
 ///
@@ -726,10 +731,6 @@ extension EventLoopFuture {
     /// Adds an observer callback to this `EventLoopFuture` that is called when the
     /// `EventLoopFuture` has any result.
     ///
-    /// Unlike its friends `whenSuccess` and `whenFailure`, `whenComplete` does not receive the result
-    /// of the `EventLoopFuture`. This is because its primary purpose is to do the appropriate cleanup
-    /// of any resources that needed to be kept open until the `EventLoopFuture` had resolved.
-    ///
     /// - parameters:
     ///     - callback: The callback that is called when the `EventLoopFuture` is fulfilled.
     @inlinable
@@ -894,6 +895,7 @@ extension EventLoopFuture {
     ///
     /// - returns: The value of the `EventLoopFuture` when it completes.
     /// - throws: The error value of the `EventLoopFuture` if it errors.
+    @inlinable
     public func wait(file: StaticString = #file, line: UInt = #line) throws -> Value {
         if !(self.eventLoop is EmbeddedEventLoop) {
             let explainer: () -> String = { """
@@ -1179,6 +1181,7 @@ extension EventLoopFuture {
     ///     - futures: An array of homogenous `EventLoopFuture`s to wait for.
     ///     - on: The `EventLoop` on which the new `EventLoopFuture` callbacks will execute on.
     /// - Returns: A new `EventLoopFuture` that succeeds after all futures complete.
+    @inlinable
     public static func andAllComplete(_ futures: [EventLoopFuture<Value>], on eventLoop: EventLoop) -> EventLoopFuture<Void> {
         let promise = eventLoop.makePromise(of: Void.self)
 
@@ -1204,6 +1207,7 @@ extension EventLoopFuture {
     ///     - futures: An array of homogenous `EventLoopFuture`s to gather results from.
     ///     - on: The `EventLoop` on which the new `EventLoopFuture` callbacks will fire.
     /// - Returns: A new `EventLoopFuture` with all the results of the provided futures.
+    @inlinable
     public static func whenAllComplete(_ futures: [EventLoopFuture<Value>],
                                        on eventLoop: EventLoop) -> EventLoopFuture<[Result<Value, Error>]> {
         let promise = eventLoop.makePromise(of: Void.self)
@@ -1236,10 +1240,11 @@ extension EventLoopFuture {
     /// they complete. The `onResult` will receive the index of the future that fulfilled the provided `Result`.
     ///
     /// Once all the futures have completed, the provided promise will succeed.
-    private static func _reduceCompletions0<InputValue>(_ promise: EventLoopPromise<Void>,
-                                                        _ futures: [EventLoopFuture<InputValue>],
-                                                        _ eventLoop: EventLoop,
-                                                        onResult: @escaping (Int, Result<InputValue, Error>) -> Void) {
+    @inlinable
+    internal static func _reduceCompletions0<InputValue>(_ promise: EventLoopPromise<Void>,
+                                                         _ futures: [EventLoopFuture<InputValue>],
+                                                         _ eventLoop: EventLoop,
+                                                         onResult: @escaping (Int, Result<InputValue, Error>) -> Void) {
         eventLoop.assertInEventLoop()
 
         var remainingCount = futures.count
@@ -1320,8 +1325,157 @@ extension EventLoopFuture {
     /// - parameters:
     ///     - callback: the callback that is called when the `EventLoopFuture` is fulfilled.   
     /// - returns: the current `EventLoopFuture`
+    @inlinable
     public func always(_ callback: @escaping (Result<Value, Error>) -> Void) -> EventLoopFuture<Value> {
         self.whenComplete { result in callback(result) }
         return self
+    }
+}
+
+// MARK: unwrap
+
+extension EventLoopFuture {
+    /// Unwrap an `EventLoopFuture` where its type parameter is an `Optional`.
+    ///
+    /// Unwrap a future returning a new `EventLoopFuture`. When the resolved future's value is `Optional.some(...)`
+    /// the new future is created with the identical value. Otherwise the `Error` passed in the `orError` parameter
+    /// is thrown. For example:
+    /// ```
+    /// do {
+    ///     try promise.futureResult.unwrap(orError: ErrorToThrow).wait()
+    /// } catch ErrorToThrow {
+    ///     ...
+    /// }
+    /// ```
+    ///
+    /// - parameters:
+    ///     - orError: the `Error` that is thrown when then resolved future's value is `Optional.none`.
+    /// - returns: an new `EventLoopFuture` with new type parameter `NewValue` and the same value as the resolved
+    ///     future.
+    /// - throws: the `Error` passed in the `orError` parameter when the resolved future's value is `Optional.none`.
+    @inlinable
+    public func unwrap<NewValue>(orError error: Error) -> EventLoopFuture<NewValue> where Value == Optional<NewValue> {
+        return self.flatMapThrowing { (value) throws -> NewValue in
+            guard let value = value else {
+                throw error
+            }
+            return value
+        }
+    }
+
+    /// Unwrap an `EventLoopFuture` where its type parameter is an `Optional`.
+    ///
+    /// Unwraps a future returning a new `EventLoopFuture` with either: the value passed in the `orReplace`
+    /// parameter when the future resolved with value Optional.none, or the same value otherwise. For example:
+    /// ```
+    /// promise.futureResult.unwrap(orReplace: 42).wait()
+    /// ```
+    ///
+    /// - parameters:
+    ///     - orReplace: the value of the returned `EventLoopFuture` when then resolved future's value is `Optional.some()`.
+    /// - returns: an new `EventLoopFuture` with new type parameter `NewValue` and the value passed in the `orReplace` parameter.
+    @inlinable
+    public func unwrap<NewValue>(orReplace replacement: NewValue) -> EventLoopFuture<NewValue> where Value == Optional<NewValue> {
+        return self.map { (value) -> NewValue in
+            guard let value = value else {
+                return replacement
+            }
+            return value 
+        }
+    }
+
+    /// Unwrap an `EventLoopFuture` where its type parameter is an `Optional`.
+    ///
+    /// Unwraps a future returning a new `EventLoopFuture` with either: the value returned by the closure passed in
+    /// the `orElse` parameter when the future resolved with value Optional.none, or the same value otherwise. For example:
+    /// ```
+    /// var x = 2
+    /// promise.futureResult.unwrap(orElse: { x * 2 }).wait()
+    /// ```
+    ///
+    /// - parameters:
+    ///     - orElse: a closure that returns the value of the returned `EventLoopFuture` when then resolved future's value
+    ///         is `Optional.some()`.
+    /// - returns: an new `EventLoopFuture` with new type parameter `NewValue` and with the value returned by the closure
+    ///     passed in the `orElse` parameter.
+    @inlinable
+    public func unwrap<NewValue>(orElse callback: @escaping () -> NewValue) -> EventLoopFuture<NewValue> where Value == Optional<NewValue> {
+        return self.map { (value) -> NewValue  in
+            guard let value = value else {
+                return callback()
+            }
+            return value 
+        }
+    }
+}
+
+// MARK: may block 
+
+extension EventLoopFuture {
+    /// Chain an `EventLoopFuture<NewValue>` providing the result of a IO / task that may block. For example:
+    ///
+    ///     promise.futureResult.flatMapBlocking(onto: DispatchQueue.global()) { value in Int
+    ///         blockingTask(value)
+    ///     }
+    ///
+    /// - parameters:
+    ///     - onto: the `DispatchQueue` on which the blocking IO / task specified by `callbackMayBlock` is scheduled.
+    ///     - callbackMayBlock: Function that will receive the value of this `EventLoopFuture` and return
+    ///         a new `EventLoopFuture`.
+    @inlinable
+    public func flatMapBlocking<NewValue>(onto queue: DispatchQueue, _ callbackMayBlock: @escaping (Value) throws -> NewValue)
+        -> EventLoopFuture<NewValue> {
+        return self.flatMap { result in
+            queue.asyncWithFuture(eventLoop: self.eventLoop) { try callbackMayBlock(result) }
+        }
+    }
+
+    /// Adds an observer callback to this `EventLoopFuture` that is called when the
+    /// `EventLoopFuture` has a success result. The observer callback is permitted to block.
+    ///
+    /// An observer callback cannot return a value, meaning that this function cannot be chained
+    /// from. If you are attempting to create a computation pipeline, consider `map` or `flatMap`.
+    /// If you find yourself passing the results from this `EventLoopFuture` to a new `EventLoopPromise`
+    /// in the body of this function, consider using `cascade` instead.
+    ///
+    /// - parameters:
+    ///     - onto: the `DispatchQueue` on which the blocking IO / task specified by `callbackMayBlock` is scheduled.
+    ///     - callbackMayBlock: The callback that is called with the successful result of the `EventLoopFuture`.
+    @inlinable
+    public func whenSuccessBlocking(onto queue: DispatchQueue, _ callbackMayBlock: @escaping (Value) -> Void) {
+        self.whenSuccess { value in
+            queue.async { callbackMayBlock(value) }
+        }
+    }
+
+    /// Adds an observer callback to this `EventLoopFuture` that is called when the
+    /// `EventLoopFuture` has a failure result. The observer callback is permitted to block.
+    ///
+    /// An observer callback cannot return a value, meaning that this function cannot be chained
+    /// from. If you are attempting to create a computation pipeline, consider `recover` or `flatMapError`.
+    /// If you find yourself passing the results from this `EventLoopFuture` to a new `EventLoopPromise`
+    /// in the body of this function, consider using `cascade` instead.
+    ///
+    /// - parameters:
+    ///     - onto: the `DispatchQueue` on which the blocking IO / task specified by `callbackMayBlock` is scheduled.
+    ///     - callbackMayBlock: The callback that is called with the failed result of the `EventLoopFuture`.
+    @inlinable
+    public func whenFailureBlocking(onto queue: DispatchQueue, _ callbackMayBlock: @escaping (Error) -> Void) {
+        self.whenFailure { err in
+            queue.async { callbackMayBlock(err) }
+        }
+    }
+
+    /// Adds an observer callback to this `EventLoopFuture` that is called when the
+    /// `EventLoopFuture` has any result. The observer callback is permitted to block.
+    ///
+    /// - parameters:
+    ///     - onto: the `DispatchQueue` on which the blocking IO / task specified by `callbackMayBlock` is schedulded.
+    ///     - callbackMayBlock: The callback that is called when the `EventLoopFuture` is fulfilled.
+    @inlinable
+    public func whenCompleteBlocking(onto queue: DispatchQueue, _ callbackMayBlock: @escaping (Result<Value, Error>) -> Void) {
+        self.whenComplete { value in
+            queue.async { callbackMayBlock(value) }
+        }
     }
 }

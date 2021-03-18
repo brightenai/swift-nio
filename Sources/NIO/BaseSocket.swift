@@ -15,7 +15,46 @@
 import NIOConcurrencyHelpers
 
 #if os(Windows)
+import let WinSDK.EAFNOSUPPORT
+import let WinSDK.EBADF
+import let WinSDK.ENOENT
+
+import let WinSDK.FILE_ATTRIBUTE_REPARSE_POINT
+import let WinSDK.FILE_FLAG_BACKUP_SEMANTICS
+import let WinSDK.FILE_FLAG_OPEN_REPARSE_POINT
+import let WinSDK.FILE_SHARE_DELETE
+import let WinSDK.FILE_SHARE_READ
+import let WinSDK.FILE_SHARE_WRITE
+import let WinSDK.FileDispositionInfoEx
+
+import let WinSDK.GENERIC_READ
+
+import let WinSDK.INET_ADDRSTRLEN
+import let WinSDK.INET6_ADDRSTRLEN
+
+import let WinSDK.INVALID_HANDLE_VALUE
 import let WinSDK.INVALID_SOCKET
+
+import let WinSDK.IO_REPARSE_TAG_AF_UNIX
+
+import let WinSDK.NO_ERROR
+
+import let WinSDK.OPEN_EXISTING
+
+import func WinSDK.CloseHandle
+import func WinSDK.CreateFileW
+import func WinSDK.DeviceIoControl
+import func WinSDK.GetFileInformationByHandle
+import func WinSDK.GetFileType
+import func WinSDK.GetLastError
+import func WinSDK.SetFileInformationByHandle
+
+import struct WinSDK.BY_HANDLE_FILE_INFORMATION
+import struct WinSDK.DWORD
+import struct WinSDK.FILE_DISPOSITION_INFO
+import struct WinSDK.socklen_t
+
+import CNIOWindows
 #endif
 
 /// A Registration on a `Selector`, which is interested in an `SelectorEventSet`.
@@ -215,7 +254,7 @@ class BaseSocket: BaseSocketProtocol {
     private var descriptor: NIOBSDSocket.Handle
     public var isOpen: Bool {
         #if os(Windows)
-            return descriptor != WinSDK.INVALID_SOCKET
+            return descriptor != NIOBSDSocket.invalidHandle
         #else
             return descriptor >= 0
         #endif
@@ -301,6 +340,17 @@ class BaseSocket: BaseSocketProtocol {
         }
         return sock
     }
+    
+    /// Cleanup the unix domain socket.
+    ///
+    /// Deletes the associated file if it exists and has socket type. Does nothing if pathname does not exist.
+    ///
+    /// - parameters:
+    ///     - unixDomainSocketPath: The pathname of the UDS.
+    /// - throws: An `UnixDomainSocketPathWrongType` if the pathname exists and is not a socket.
+    static func cleanupSocket(unixDomainSocketPath: String) throws {
+        try NIOBSDSocket.cleanupUnixDomainSocket(atPath: unixDomainSocketPath)
+    }
 
     /// Create a new instance.
     ///
@@ -311,7 +361,7 @@ class BaseSocket: BaseSocketProtocol {
     ///     - descriptor: The file descriptor to wrap.
     init(socket descriptor: NIOBSDSocket.Handle) throws {
         #if os(Windows)
-            precondition(descriptor != WinSDK.INVALID_SOCKET, "invalid socket")
+            precondition(descriptor != NIOBSDSocket.invalidHandle, "invalid socket")
         #else
             precondition(descriptor >= 0, "invalid socket")
         #endif
@@ -319,7 +369,7 @@ class BaseSocket: BaseSocketProtocol {
         do {
             try self.ignoreSIGPIPE()
         } catch {
-            self.descriptor = -1 // We have to unset the fd here, otherwise we'll crash with "leaking open BaseSocket"
+            self.descriptor = NIOBSDSocket.invalidHandle // We have to unset the fd here, otherwise we'll crash with "leaking open BaseSocket"
             throw error
         }
     }
@@ -329,7 +379,7 @@ class BaseSocket: BaseSocketProtocol {
     }
 
     func ignoreSIGPIPE() throws {
-        try BaseSocket.ignoreSIGPIPE(descriptor: self.descriptor)
+        try BaseSocket.ignoreSIGPIPE(socket: self.descriptor)
     }
 
     /// Set the socket as non-blocking.
@@ -439,7 +489,7 @@ class BaseSocket: BaseSocketProtocol {
     /// - throws: An `IOError` if the operation failed.
     final func takeDescriptorOwnership() throws -> NIOBSDSocket.Handle {
         return try self.withUnsafeHandle {
-            self.descriptor = -1
+            self.descriptor = NIOBSDSocket.invalidHandle
             return $0
         }
     }

@@ -28,8 +28,6 @@ include FileUtils
 #
 # This ruby script will auto generate LinuxMain.swift and the +XCTest.swift extension files for Swift Package Manager on Linux platforms.
 #
-# See https://github.com/apple/swift-corelibs-xctest/blob/master/Documentation/Linux.md
-#
 def header(fileName)
   string = <<-eos
 //===----------------------------------------------------------------------===//
@@ -95,7 +93,7 @@ def createLinuxMain(testsDirectory, allTestSubDirectories, files)
     file.write header(fileName)
     file.write "\n"
 
-    file.write "#if os(Linux) || os(FreeBSD)\n"
+    file.write "#if os(Linux) || os(FreeBSD) || os(Android)\n"
     for testSubDirectory in allTestSubDirectories.sort { |x, y| x <=> y }
       file.write '   @testable import ' + testSubDirectory + "\n"
     end

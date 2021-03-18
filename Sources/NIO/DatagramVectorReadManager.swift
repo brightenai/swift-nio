@@ -100,6 +100,7 @@ struct DatagramVectorReadManager {
                 // TODO(cory): almost all of this except for the iovec could be done at allocation time. Maybe we should?
 
                 // First we set up the iovec and save it off.
+
                 #if os(Android)
                 self.ioVector[i] = IOVector(
                     iov_base: bufferPointer.baseAddress! + (i * messageSize),
@@ -109,6 +110,8 @@ struct DatagramVectorReadManager {
                     iov_base: bufferPointer.baseAddress! + (i * messageSize),
                                             iov_len: messageSize)
                 #endif
+
+//                self.ioVector[i] = IOVector(iov_base: bufferPointer.baseAddress! + (i * messageSize), iov_len: numericCast(messageSize))
                 let controlBytes: UnsafeMutableRawBufferPointer
                 if reportExplicitCongestionNotifications {
                     // This will be used in buildMessages below but should not be used beyond return of this function.

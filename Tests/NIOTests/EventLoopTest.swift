@@ -25,14 +25,14 @@ public final class EventLoopTest : XCTestCase {
 
         var result: Bool?
         scheduled.futureResult.whenSuccess { result = $0 }
-        
+
         eventLoop.run() // run without time advancing should do nothing
         XCTAssertFalse(scheduled.futureResult.isFulfilled)
         XCTAssertNil(result)
-        
+
         eventLoop.advanceTime(by: .seconds(1)) // should fire now
         XCTAssertTrue(scheduled.futureResult.isFulfilled)
-        
+
         XCTAssertNotNil(result)
         XCTAssertTrue(result == true)
     }
@@ -46,14 +46,14 @@ public final class EventLoopTest : XCTestCase {
 
         var result: Bool?
         scheduled.futureResult.whenSuccess { result = $0 }
-        
+
         eventLoop.run() // run without time advancing should do nothing
         XCTAssertFalse(scheduled.futureResult.isFulfilled)
         XCTAssertNil(result)
-        
+
         eventLoop.advanceTime(by: .seconds(1)) // should fire now
         XCTAssertTrue(scheduled.futureResult.isFulfilled)
-        
+
         XCTAssertNotNil(result)
         XCTAssertTrue(result == true)
     }
@@ -102,7 +102,7 @@ public final class EventLoopTest : XCTestCase {
         var error: Error?
         scheduled.futureResult.whenSuccess { result = $0 }
         scheduled.futureResult.whenFailure { error = $0 }
-        
+
         eventLoop.advanceTime(by: .milliseconds(500)) // advance halfway to firing time
         scheduled.cancel()
         eventLoop.advanceTime(by: .milliseconds(500)) // advance the rest of the way
@@ -123,7 +123,7 @@ public final class EventLoopTest : XCTestCase {
         var error: Error?
         scheduled.futureResult.whenSuccess { result = $0 }
         scheduled.futureResult.whenFailure { error = $0 }
-        
+
         eventLoop.advanceTime(by: .milliseconds(500)) // advance halfway to firing time
         scheduled.cancel()
         eventLoop.advanceTime(by: .milliseconds(500)) // advance the rest of the way
@@ -173,7 +173,7 @@ public final class EventLoopTest : XCTestCase {
         var error: Error?
         scheduled.futureResult.whenSuccess { result = $0 }
         scheduled.futureResult.whenFailure { error = $0 }
-        
+
         scheduled.cancel()
         eventLoop.advanceTime(by: .seconds(1))
 
@@ -192,7 +192,7 @@ public final class EventLoopTest : XCTestCase {
         var error: Error?
         scheduled.futureResult.whenSuccess { result = $0 }
         scheduled.futureResult.whenFailure { error = $0 }
-        
+
         scheduled.cancel()
         eventLoop.advanceTime(by: .seconds(1))
 
@@ -551,7 +551,7 @@ public final class EventLoopTest : XCTestCase {
     }
 
     public func testEventLoopPinned() throws {
-        #if os(Linux)
+        #if os(Linux) || os(Android)
             let body: ThreadInitializer = { t in
                 let set = LinuxCPUSet(0)
                 t.affinity = set
@@ -566,7 +566,7 @@ public final class EventLoopTest : XCTestCase {
     }
 
     public func testEventLoopPinnedCPUIdsConstructor() throws {
-        #if os(Linux)
+        #if os(Linux) || os(Android)
             let group = MultiThreadedEventLoopGroup(pinnedCPUIds: [0])
             let eventLoop = group.next()
             let set = try eventLoop.submit {
@@ -706,7 +706,7 @@ public final class EventLoopTest : XCTestCase {
         XCTAssertTrue(result.isEmpty)
 
     }
-    
+
     public func testRepeatedTaskThatIsImmediatelyCancelledNotifies() throws {
         let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         defer {
@@ -1293,6 +1293,194 @@ public final class EventLoopTest : XCTestCase {
             XCTAssertTrue(sharedEventLoopGroup === eventLoopGroup)
         } else {
             XCTFail("Not the same")
+        }
+    }
+
+    // Test that scheduling a task at the maximum value doesn't crash.
+    // (Crashing resulted from an EINVAL/IOException thrown by the kevent
+    // syscall when the timeout value exceeded the maximum supported by
+    // the Darwin kernel #1056).
+    public func testScheduleMaximum() {
+        let eventLoop = EmbeddedEventLoop()
+        let maxAmount: TimeAmount = .nanoseconds(.max)
+        let scheduled = eventLoop.scheduleTask(in: maxAmount) { true }
+
+        var result: Bool?
+        var error: Error?
+        scheduled.futureResult.whenSuccess { result = $0 }
+        scheduled.futureResult.whenFailure { error = $0 }
+
+        scheduled.cancel()
+
+        XCTAssertTrue(scheduled.futureResult.isFulfilled)
+        XCTAssertNil(result)
+        XCTAssertEqual(error as? EventLoopError, .cancelled)
+    }
+
+    func testEventLoopsWithPreSucceededFuturesCacheThem() {
+        let el = EventLoopWithPreSucceededFuture()
+        defer {
+            XCTAssertNoThrow(try el.syncShutdownGracefully())
+        }
+
+        let future1 = el.makeSucceededFuture(())
+        let future2 = el.makeSucceededFuture(())
+        let future3 = el.makeSucceededVoidFuture()
+
+        XCTAssert(future1 === future2)
+        XCTAssert(future2 === future3)
+    }
+
+    func testEventLoopsWithoutPreSucceededFuturesDoNotCacheThem() {
+        let el = EventLoopWithoutPreSucceededFuture()
+        defer {
+            XCTAssertNoThrow(try el.syncShutdownGracefully())
+        }
+
+        let future1 = el.makeSucceededFuture(())
+        let future2 = el.makeSucceededFuture(())
+        let future3 = el.makeSucceededVoidFuture()
+
+        XCTAssert(future1 !== future2)
+        XCTAssert(future2 !== future3)
+        XCTAssert(future1 !== future3)
+    }
+
+    func testSelectableEventLoopHasPreSucceededFuturesOnlyOnTheEventLoop() {
+        let elg = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer {
+            XCTAssertNoThrow(try elg.syncShutdownGracefully())
+        }
+
+        let el = elg.next()
+
+        let futureOutside1 = el.makeSucceededVoidFuture()
+        let futureOutside2 = el.makeSucceededFuture(())
+        XCTAssert(futureOutside1 !== futureOutside2)
+
+        XCTAssertNoThrow(try el.submit {
+            let futureInside1 = el.makeSucceededVoidFuture()
+            let futureInside2 = el.makeSucceededFuture(())
+
+            XCTAssert(futureOutside1 !== futureInside1)
+            XCTAssert(futureInside1 === futureInside2)
+        }.wait())
+    }
+
+    func testMakeCompletedFuture() {
+        let eventLoop = EmbeddedEventLoop()
+        defer {
+            XCTAssertNoThrow(try eventLoop.syncShutdownGracefully())
+        }
+
+        XCTAssertEqual(try eventLoop.makeCompletedFuture(.success("foo")).wait(), "foo")
+
+        struct DummyError: Error {}
+        let future = eventLoop.makeCompletedFuture(Result<String, Error>.failure(DummyError()))
+        XCTAssertThrowsError(try future.wait()) { error in
+            XCTAssertTrue(error is DummyError)
+        }
+    }
+
+    func testMakeCompletedVoidFuture() {
+        let eventLoop = EventLoopWithPreSucceededFuture()
+        defer {
+            XCTAssertNoThrow(try eventLoop.syncShutdownGracefully())
+        }
+
+        let future1 = eventLoop.makeCompletedFuture(.success(()))
+        let future2 = eventLoop.makeSucceededVoidFuture()
+        let future3 = eventLoop.makeSucceededFuture(())
+        XCTAssert(future1 === future2)
+        XCTAssert(future2 === future3)
+    }
+}
+
+fileprivate class EventLoopWithPreSucceededFuture: EventLoop {
+    var inEventLoop: Bool {
+        return true
+    }
+
+    func execute(_ task: @escaping () -> Void) {
+        preconditionFailure("not implemented")
+    }
+
+    func submit<T>(_ task: @escaping () throws -> T) -> EventLoopFuture<T> {
+        preconditionFailure("not implemented")
+    }
+
+    @discardableResult
+    func scheduleTask<T>(deadline: NIODeadline, _ task: @escaping () throws -> T) -> Scheduled<T> {
+        preconditionFailure("not implemented")
+    }
+
+    @discardableResult
+    func scheduleTask<T>(in: TimeAmount, _ task: @escaping () throws -> T) -> Scheduled<T> {
+        preconditionFailure("not implemented")
+    }
+
+    func preconditionInEventLoop(file: StaticString, line: UInt) {
+        preconditionFailure("not implemented")
+    }
+
+    func preconditionNotInEventLoop(file: StaticString, line: UInt) {
+        preconditionFailure("not implemented")
+    }
+
+    var _succeededVoidFuture: EventLoopFuture<Void>?
+    func makeSucceededVoidFuture() -> EventLoopFuture<Void> {
+        guard self.inEventLoop, let voidFuture = self._succeededVoidFuture else {
+            return self.makeSucceededFuture(())
+        }
+        return voidFuture
+    }
+
+    init() {
+        self._succeededVoidFuture = EventLoopFuture(eventLoop: self, value: (), file: "n/a", line: 0)
+    }
+
+    func shutdownGracefully(queue: DispatchQueue, _ callback: @escaping (Error?) -> Void) {
+        self._succeededVoidFuture = nil
+        queue.async {
+            callback(nil)
+        }
+    }
+}
+
+fileprivate class EventLoopWithoutPreSucceededFuture: EventLoop {
+    var inEventLoop: Bool {
+        return true
+    }
+
+    func execute(_ task: @escaping () -> Void) {
+        preconditionFailure("not implemented")
+    }
+
+    func submit<T>(_ task: @escaping () throws -> T) -> EventLoopFuture<T> {
+        preconditionFailure("not implemented")
+    }
+
+    @discardableResult
+    func scheduleTask<T>(deadline: NIODeadline, _ task: @escaping () throws -> T) -> Scheduled<T> {
+        preconditionFailure("not implemented")
+    }
+
+    @discardableResult
+    func scheduleTask<T>(in: TimeAmount, _ task: @escaping () throws -> T) -> Scheduled<T> {
+        preconditionFailure("not implemented")
+    }
+
+    func preconditionInEventLoop(file: StaticString, line: UInt) {
+        preconditionFailure("not implemented")
+    }
+
+    func preconditionNotInEventLoop(file: StaticString, line: UInt) {
+        preconditionFailure("not implemented")
+    }
+
+    func shutdownGracefully(queue: DispatchQueue, _ callback: @escaping (Error?) -> Void) {
+        queue.async {
+            callback(nil)
         }
     }
 }

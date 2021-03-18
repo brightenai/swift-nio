@@ -133,6 +133,7 @@ class ByteBufferTest: XCTestCase {
     func testMakeSureUniquelyOwnedSliceDoesNotGetReallocatedOnWrite() {
         var slice = self.makeSliceToBufferWhichIsDeallocated()
         XCTAssertEqual(1, slice.capacity)
+        XCTAssertEqual(16, slice.storageCapacity)
         let oldStorageBegin = slice.withUnsafeReadableBytes { ptr in
             return UInt(bitPattern: ptr.baseAddress!)
         }
@@ -146,6 +147,7 @@ class ByteBufferTest: XCTestCase {
     func testWriteToUniquelyOwnedSliceWhichTriggersAReallocation() {
         var slice = self.makeSliceToBufferWhichIsDeallocated()
         XCTAssertEqual(1, slice.capacity)
+        XCTAssertEqual(16, slice.storageCapacity)
         // this will cause a re-allocation, the whole buffer should be 32 bytes then, the slice having 17 of that.
         // this fills 16 bytes so will still fit
         slice.writeBytes(Array(16..<32))
@@ -2048,7 +2050,7 @@ class ByteBufferTest: XCTestCase {
                                         hookedFree: testReserveCapacityLarger_freeHook,
                                         hookedMemcpy: testReserveCapacityLarger_memcpyHook)
         var buf = alloc.buffer(capacity: 16)
-        let bufCopy = buf
+        var bufCopy = buf
 
         withExtendedLifetime(bufCopy) {
             let oldCapacity = buf.capacity
@@ -2069,6 +2071,7 @@ class ByteBufferTest: XCTestCase {
             XCTAssertNotEqual(buf.capacity, oldCapacity)
             XCTAssertNotEqual(oldPtrVal, newPtrVal)
         }
+        bufCopy.writeString("foo") // stops the optimiser removing `bufCopy` which would make `reserveCapacity` use malloc instead of realloc
     }
 
     func testReserveCapacityWithMinimumWritableBytesWhenNotEnoughWritableBytes() {
@@ -2531,6 +2534,7 @@ class ByteBufferTest: XCTestCase {
             }
             XCTAssertNil(secondResult)
             XCTAssertNil(thirdResult)
+            localCopy.writeString("foo") // stops the optimiser getting rid of `localCopy`
         }
 
         let fourthResult = buffer.modifyIfUniquelyOwned {

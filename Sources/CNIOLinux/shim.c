@@ -29,6 +29,7 @@ void CNIOLinux_i_do_nothing_just_working_around_a_darwin_toolchain_bug2(FILE) {}
 #endif
 #include <stdio.h>
 #include <sys/prctl.h>
+#include <unistd.h>
 #include <assert.h>
 
 #ifndef TEMP_FAILURE_RETRY

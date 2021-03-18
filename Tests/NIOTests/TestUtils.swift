@@ -20,7 +20,7 @@ extension System {
     static var supportsIPv6: Bool {
         do {
             let ipv6Loopback = try SocketAddress.makeAddressResolvingHost("::1", port: 0)
-            return try System.enumerateInterfaces().filter { $0.address == ipv6Loopback }.first != nil
+            return try System.enumerateDevices().filter { $0.address == ipv6Loopback }.first != nil
         } catch {
             return false
         }
@@ -127,9 +127,7 @@ var temporaryDirectory: String {
         // for UNIX Domain Socket paths (which are limited to 103 bytes).
         return "/tmp"
 #else
-#if os(Android)
-        return "/data/local/tmp"
-#elseif os(Linux)
+#if os(Linux)
         return "/tmp"
 #else
         if #available(macOS 10.12, iOS 10, tvOS 10, watchOS 3, *) {

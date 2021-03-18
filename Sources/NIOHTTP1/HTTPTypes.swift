@@ -679,6 +679,20 @@ public struct HTTPVersion: Equatable {
         }
     }
 
+    /// HTTP/3
+    public static let http3 = HTTPVersion(major: 3, minor: 0)
+
+    /// HTTP/2
+    public static let http2 = HTTPVersion(major: 2, minor: 0)
+
+    /// HTTP/1.1
+    public static let http1_1 = HTTPVersion(major: 1, minor: 1)
+
+    /// HTTP/1.0
+    public static let http1_0 = HTTPVersion(major: 1, minor: 0)
+
+    /// HTTP/0.9 (not supported by SwiftNIO)
+    public static let http0_9 = HTTPVersion(major: 0, minor: 9)
 }
 
 extension HTTPParserError: CustomDebugStringConvertible {
@@ -1433,5 +1447,23 @@ extension HTTPMethod: RawRepresentable {
             default:
                 self = .RAW(value: rawValue)
         }
+    }
+}
+
+extension HTTPResponseHead {
+    internal var contentLength: Int? {
+        return headers.contentLength
+    }
+}
+
+extension HTTPRequestHead {
+    internal var contentLength: Int? {
+        return headers.contentLength
+    }
+}
+
+extension HTTPHeaders {
+    internal var contentLength: Int? {
+        return self.first(name: "content-length").flatMap { Int($0) }
     }
 }
