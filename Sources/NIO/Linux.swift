@@ -15,7 +15,7 @@
 // This is a companion to System.swift that provides only Linux specials: either things that exist
 // only on Linux, or things that have Linux-specific extensions.
 
-#if os(Linux) || os(Android)
+//#if os(Linux) || os(Android)
 import CNIOLinux
 
 #if os(Linux) || os(Android)

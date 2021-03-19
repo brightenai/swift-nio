@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 #ifndef C_NIO_LINUX_H
 #define C_NIO_LINUX_H
+#include "ifaddrs-android.h"
 
 #ifdef __linux__
 
