@@ -66,15 +66,15 @@
 //#define EPOLLET  (1U << 31)
 
 /** The opaque structure implementing `FILE`. Do not make any assumptions about its content. */
-struct __sFILE {
-#if defined(__LP64__)
-  char __private[152];
-#else
-  char __private[84];
-#endif
-};
-
-typedef struct __sFILE FILE;
+//struct __sFILE {
+//#if defined(__LP64__)
+//  char __private[152];
+//#else
+//  char __private[84];
+//#endif
+//};
+//
+//typedef struct __sFILE FILE;
 #endif
 //#include <stdio.h>
 

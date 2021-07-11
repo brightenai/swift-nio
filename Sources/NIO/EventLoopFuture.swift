@@ -420,7 +420,8 @@ public final class EventLoopFuture<Value> {
             if let eventLoop = self.eventLoop as? SelectableEventLoop {
                 let creation = eventLoop.promiseCreationStoreRemove(future: self)
                 if self._value == nil {
-                    fatalError("leaking promise created at \(creation)", file: creation.file, line: creation.line)
+                    print("leaking promise created at \(creation) file: \(creation.file), line: \(creation.line)")
+                    //fatalError("leaking promise created at \(creation)", file: creation.file, line: creation.line)
                 }
             } else {
                 precondition(self._value != nil, "leaking an unfulfilled Promise")
